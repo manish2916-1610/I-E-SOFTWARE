@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Export Docs Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#1c2430;
+  --ink-soft:#5b6472;
+  --paper:#f6f4ef;
+  --panel:#ffffff;
+  --line:#e2ddd1;
+  --accent:#0f5c4e;
+  --accent-soft:#e4f2ee;
+  --gold:#b8860b;
+  --danger:#b3382c;
+  --tax:#1d4d8f;
+  --tax-soft:#e7effa;
+  --proforma:#6a3fa0;
+  --proforma-soft:#efe6f8;
+  --packing:#1d7a4c;
+  --packing-soft:#e5f5ec;
+  --quote:#b56a17;
+  --quote-soft:#faf0e1;
+  --radius:10px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ink:#eef0f3; --ink-soft:#a9b0bb; --paper:#14181d; --panel:#1c2128; --line:#2c333d;
+    --accent-soft:#0f2b25; --tax-soft:#101f33; --proforma-soft:#241a33; --packing-soft:#0f2418; --quote-soft:#2b2011;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#eef0f3; --ink-soft:#a9b0bb; --paper:#14181d; --panel:#1c2128; --line:#2c333d;
+  --accent-soft:#0f2b25; --tax-soft:#101f33; --proforma-soft:#241a33; --packing-soft:#0f2418; --quote-soft:#2b2011;
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  min-height:100%;
+}
+h1,h2,h3,h4,.brand-text .t1,.stat .n,.type-btn b{font-family:'Poppins','Inter',sans-serif;}
+a{color:inherit;}
+h1,h2,h3,h4{margin:0 0 6px;font-weight:700;letter-spacing:.1px;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:14px;}
+.topbar{
+  position:sticky;top:0;z-index:40;background:var(--panel);border-bottom:1px solid var(--line);
+  padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0 16px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding-bottom:10px;}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#0a3a30);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;}
+.brand-text .t1{font-size:16px;font-weight:800;}
+.brand-text .t2{font-size:11.5px;color:var(--ink-soft);}
+.tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:0;}
+.tab{
+  border:none;background:none;padding:10px 14px;font-size:13.5px;font-weight:600;color:var(--ink-soft);
+  border-bottom:2.5px solid transparent;white-space:nowrap;flex-shrink:0;
+}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+.view{display:none;}
+.view.active{display:block;}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--radius);
+  padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);
+}
+.card.c-tax{border-left-color:var(--tax);}
+.card.c-proforma{border-left-color:var(--proforma);}
+.card.c-packing{border-left-color:var(--packing);}
+.card.c-quote{border-left-color:var(--quote);}
+.card.c-gold{border-left-color:var(--gold);}
+.card.c-danger{border-left-color:var(--danger);}
+.card h3{font-size:14.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:2px;}
+.field label{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.field input,.field select,.field textarea{
+  padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink);width:100%;
+}
+.field textarea{resize:vertical;min-height:56px;}
+.field.span2{grid-column:span 2;}
+.field.span3{grid-column:span 3;}
+@media (max-width:640px){.field.span2,.field.span3{grid-column:span 1;}}
+.row-flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:8px;
+  font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;
+}
+.btn:active{transform:scale(.98);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff;}
+.btn.ghost{background:transparent;}
+.btn.sm{padding:5px 10px;font-size:12.5px;}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--accent-soft);text-align:left;padding:8px 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-soft);border-bottom:1px solid var(--line);white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.muted{color:var(--ink-soft);font-size:12.5px;}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;}
+.pill.tax{background:var(--tax-soft);color:var(--tax);}
+.pill.proforma{background:var(--proforma-soft);color:var(--proforma);}
+.pill.packing{background:var(--packing-soft);color:var(--packing);}
+.pill.quote{background:var(--quote-soft);color:var(--quote);}
+.hint{font-size:12px;color:var(--ink-soft);line-height:1.5;margin-top:4px;}
+.section-title{font-size:13px;font-weight:800;color:var(--accent);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.4px;}
+.section-title:first-child{margin-top:0;}
+.items-tbl input,.items-tbl select{padding:6px 7px;font-size:12.5px;}
+.items-tbl td{padding:5px 5px;}
+.type-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.type-btn{flex:1;min-width:140px;border:1.5px solid var(--line);border-radius:10px;padding:12px;text-align:left;background:var(--panel);}
+.type-btn b{display:block;font-size:13.5px;margin-bottom:2px;}
+.type-btn span{font-size:11.5px;color:var(--ink-soft);}
+.type-btn.sel{border-color:var(--sel-color);background:var(--sel-bg);}
+.logo-preview{width:70px;height:70px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--paper);flex-shrink:0;}
+.logo-preview img{max-width:100%;max-height:100%;object-fit:contain;}
+.totalbar{display:flex;justify-content:flex-end;gap:24px;padding:12px 4px;flex-wrap:wrap;}
+.totalbar .tb{text-align:right;}
+.totalbar .tb .l{font-size:11px;color:var(--ink-soft);}
+.totalbar .tb .v{font-size:17px;font-weight:800;}
+.empty{padding:26px 10px;text-align:center;color:var(--ink-soft);font-size:13px;}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:99px;font-size:13px;font-weight:600;z-index:100;opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;}
+.toast.show{opacity:1;bottom:calc(30px + env(safe-area-inset-bottom,0px));}
+.summary-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;}
+.stat .n{font-size:22px;font-weight:800;}
+.stat .l{font-size:11.5px;color:var(--ink-soft);}
+.icon-btn{border:none;background:none;color:var(--ink-soft);font-size:15px;padding:2px 6px;}
+.icon-btn.del{color:var(--danger);}
+.flexrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.watermark-toggle{display:flex;align-items:center;gap:8px;}
+select#filterType, input#searchBox{max-width:200px;}
+.lock-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#101820,#1c2430);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;}
+#adminModal{z-index:1001;}
+#lockHeading{user-select:none;}
+.lock-box{background:var(--panel);border-radius:14px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4);}
+.lock-box h2{font-size:18px;color:var(--danger);}
+.lock-box p{font-size:13px;color:var(--ink-soft);line-height:1.6;}
+.ledger-balance{font-size:15px;font-weight:800;}
+.ledger-balance.due{color:var(--danger);}
+.ledger-balance.clear{color:var(--packing);}
+
+/* ---------- Preview / print document ---------- */
+#previewWrap{background:#5a5a5a;padding:20px 0;border-radius:10px;}
+.doc-page{
+  width:210mm;min-height:296mm;margin:0 auto 20px;background:#fff;color:#1a1a1a;
+  padding:10mm 11mm;box-shadow:0 4px 18px rgba(0,0,0,.35);position:relative;font-family:Arial,Helvetica,sans-serif;
+  font-size:10.8px;line-height:1.42;
+  --docColor:#0f5c4e;--docSoft:#e4f2ee;
+}
+.doc-page *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.doc-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;z-index:0;}
+.doc-watermark span{font-size:80px;font-weight:800;color:rgba(0,0,0,.06);transform:rotate(-32deg);white-space:nowrap;letter-spacing:4px;}
+.doc-content{position:relative;z-index:1;}
+.doc-topbar{height:9px;border-radius:4px;margin-bottom:10px;background:var(--docColor);}
+.doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:8px;padding-bottom:8px;border-bottom:2.5px solid var(--docColor);}
+.doc-head .co-logo{height:70px;max-width:210px;max-height:110px;object-fit:contain;}
+.doc-head .co-info{flex:1;}
+.doc-head .co-name{font-size:23px;font-weight:800;letter-spacing:.2px;color:var(--docColor);line-height:1.15;}
+.doc-head .co-addr{font-size:10px;color:#333;margin-top:3px;white-space:pre-line;line-height:1.5;}
+.doc-title-band{
+  text-align:center;padding:9px 0;margin:0 0 10px;color:#fff;font-weight:800;font-size:18px;
+  letter-spacing:2px;border-radius:5px;background:var(--docColor);
+}
+table.doc-tbl{width:100%;border-collapse:collapse;margin-bottom:8px;}
+table.doc-tbl td,table.doc-tbl th{border:1.3px solid #7d7d7d;padding:5px 7px;vertical-align:top;font-size:10px;}
+table.doc-tbl th{background:var(--docSoft);font-weight:800;text-align:left;text-transform:uppercase;font-size:9.3px;letter-spacing:.3px;color:#111;border-bottom:2px solid var(--docColor);}
+.lbl{font-size:8.6px;text-transform:uppercase;color:var(--docColor);font-weight:800;letter-spacing:.3px;display:inline-block;margin-bottom:2px;background:var(--docSoft);padding:1px 6px;border-radius:3px;}
+.val{font-size:11.2px;font-weight:700;color:#111;display:block;margin-top:2px;}
+.items-doc td{font-size:9.8px;}
+.right{text-align:right;}
+.center{text-align:center;}
+.doc-total-row td{font-weight:800;background:var(--docSoft);border-top:1.5px solid var(--docColor);font-size:10.5px;}
+.doc-footer-note{font-size:8.8px;color:#444;margin-top:6px;line-height:1.5;}
+.doc-signblock{display:flex;justify-content:space-between;margin-top:28px;gap:20px;}
+.doc-signblock .sb{flex:1;text-align:center;font-size:9.6px;font-weight:600;border-top:1.8px solid #333;padding-top:6px;}
+.section-title-print{font-size:11.5px;font-weight:800;color:var(--docColor);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1.8px solid var(--docColor);padding-bottom:3px;}
+.doc-terms{font-size:9.3px;color:#333;white-space:pre-line;line-height:1.6;margin-top:5px;}
+.doc-page-num{position:absolute;top:8mm;right:11mm;font-size:9px;color:#666;}
+.copy-tag{display:inline-block;background:var(--docColor);color:#fff;font-size:9px;font-weight:700;padding:2px 10px;border-radius:3px;letter-spacing:.3px;}
+
+@media print{
+  body *{visibility:hidden;}
+  #previewWrap, #previewWrap *{visibility:visible;}
+  #previewWrap{position:absolute;left:0;top:0;width:100%;background:#fff;padding:0;}
+  .doc-page{box-shadow:none;margin:0;width:100%;min-height:0;page-break-after:always;}
+}
+</style>
+</head>
+<body>
+<datalist id="countryList"></datalist>
+<datalist id="stateList"></datalist>
+
+<div class="lock-overlay" id="loginGate" style="display:none;">
+  <div class="lock-box">
+    <h2 id="loginHeading" onclick="loginHeadingClick()" style="cursor:default;">🔒 Login Required</h2>
+    <p>Is software ko use karne ke liye ID aur Password se login kijiye.</p>
+    <div class="field" style="text-align:left;"><label>ID</label><input id="lg_id" autocomplete="off"></div>
+    <div class="field" style="text-align:left;"><label>Password</label><input id="lg_pass" type="password"></div>
+    <button class="btn primary" style="width:100%;margin-top:6px;" onclick="tryLogin()">Login</button>
+    <div class="hint" id="lg_error" style="color:var(--danger);margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- Admin validity-lock + login-user settings are intentionally NOT shown as a visible tab/card —
+     only reachable via a secret gesture, see openAdminModal() triggers in JS. -->
+<div class="lock-overlay" id="genericModal" style="display:none;z-index:1002;">
+  <div class="lock-box" id="genericModalBody"></div>
+</div>
+
+<div class="lock-overlay" id="adminModal" style="display:none;">
+  <div class="lock-box">
+    <h2 style="color:var(--accent);">🔐 Admin Settings</h2>
+    <p style="font-size:12px;">Yeh panel sirf aapke liye hai — kisi aur ko yeh nahi dikhega.</p>
+    <div class="field" style="text-align:left;"><label>Current Password (change karne ke liye; pehli baar khaali chhodiye)</label><input id="adm_curpass" type="password"></div>
+    <div class="field" style="text-align:left;"><label>New Password (set / change)</label><input id="adm_newpass" type="password"></div>
+    <div class="field" style="text-align:left;"><label>Expiry Date (khaali = koi limit nahi)</label><input id="adm_expiry" type="date"></div>
+    <div class="row-flex" style="justify-content:center;margin-top:10px;">
+      <button class="btn primary" onclick="saveAdminSettings()">Save</button>
+      <button class="btn ghost" onclick="closeAdminModal()">Close</button>
+    </div>
+    <div class="hint" id="admStatusHint" style="margin-top:8px;"></div>
+
+    <div style="text-align:left;border-top:1px solid var(--line);padding-top:10px;margin-top:12px;">
+      <b style="font-size:13px;">App Login (ID / Password)</b>
+      <p class="hint">Yahan ID/Password bana dein to link jab bhi koi khole, login mangega. Koi user na ho to link bina login ke khulega.</p>
+      <div class="row-flex">
+        <input id="adm_newUserId" placeholder="ID" style="flex:1;min-width:0;">
+        <input id="adm_newUserPass" type="password" placeholder="Password" style="flex:1;min-width:0;">
+        <button class="btn sm primary" onclick="addLoginUser()">+ Add</button>
+      </div>
+      <div id="adm_userList" style="margin-top:8px;font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== LOCK OVERLAY (shown to whoever opens the link after expiry) =================== -->
+<div class="lock-overlay" id="lockOverlay" style="display:none;">
+  <div class="lock-box">
+    <h2 id="lockHeading" onclick="lockHeadingClick()" style="cursor:default;">⛔ Validity Samapt Ho Chuki Hai</h2>
+    <p>Is application ki validity khatam ho chuki hai. Please recharge karwayen / provider se sampark karein.</p>
+  </div>
+</div>
+
+<div id="appShell" style="display:none;">
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark" id="brandMark" onclick="brandMarkClick()">ED</div>
+    <div class="brand-text">
+      <div class="t1">Export Docs Studio</div>
+      <div class="t2" id="companyTagline">Tax Invoice · Proforma · Packing List · Quotation</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="setup">1 · Setup (Master Data)</button>
+    <button class="tab" data-tab="doc">2 · New Document</button>
+    <button class="tab" data-tab="preview">3 · Preview &amp; Print</button>
+    <button class="tab" data-tab="report">4 · Report</button>
+    <button class="tab" data-tab="ledger">5 · Party Ledger</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- =================== SETUP TAB =================== -->
+  <div class="view active" id="view-setup">
+
+    <div class="card">
+      <h3>Company / Exporter Details</h3>
+      <div class="row-flex" style="margin-bottom:12px;">
+        <select id="companySelect" onchange="switchCompany()" style="max-width:220px;"></select>
+        <button class="btn sm primary" onclick="addCompany()">+ New Company</button>
+        <button class="btn sm danger" onclick="removeCompany()">Delete This Company</button>
+      </div>
+      <div class="hint" style="margin-bottom:10px;">Multiple companies ke liye alag-alag profile bana sakte hain (name, logo, GSTIN, bank sab alag) — dropdown se switch kijiye. Parties, Products, Terms aur Numbering sab companies ke liye common/shared rahenge.</div>
+      <div class="row-flex" style="margin-bottom:12px;">
+        <div class="logo-preview" id="logoPreview">
+          <span class="muted" style="font-size:10px;">No logo</span>
+        </div>
+        <div>
+          <input type="file" id="logoInput" accept="image/*" style="display:none;">
+          <button class="btn sm" onclick="document.getElementById('logoInput').click()">Upload Logo</button>
+          <button class="btn sm ghost" onclick="clearLogo()">Remove</button>
+          <div class="hint">Yeh logo har document ke print header me automatically lagega.</div>
+          <div class="row-flex" style="margin-top:6px;">
+            <label style="font-size:12px;color:var(--ink-soft);">Print me logo size:</label>
+            <input type="range" id="s_logoSize" min="40" max="140" step="5" oninput="onLogoSizeChange()" style="width:140px;">
+            <span id="s_logoSizeLabel" class="muted">70px</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="field span2"><label>Company Name</label><input id="s_companyName" placeholder="XYZ PVT LTD"></div>
+        <div class="field span2"><label>Address</label><input id="s_companyAddress" placeholder="Full address"></div>
+        <div class="field"><label>Phone</label><input id="s_companyPhone" placeholder="+91 12345 67890"></div>
+        <div class="field"><label>Email</label><input id="s_companyEmail" placeholder="info@xyz.com"></div>
+        <div class="field"><label>GSTIN</label><input id="s_gstin" placeholder="24XXXXXXXXXXXZ5"></div>
+        <div class="field"><label>IEC Code</label><input id="s_iec" placeholder="CFFPD3702L"></div>
+        <div class="field"><label>VAT / EORI (buyer's country, optional)</label><input id="s_vat" placeholder="INREXXXXXXXXXXEC005"></div>
+        <div class="field"><label>Place of Supply / Jurisdiction</label><input id="s_placeOfSupply" placeholder="Surat, Gujarat, India"></div>
+        <div class="field"><label>State (for E-way Bill)</label><input id="s_state" list="stateList" placeholder="Type or select state"></div>
+      </div>
+      <div class="section-title">Bank Details (for Proforma / Tax Invoice)</div>
+      <div class="grid">
+        <div class="field span2"><label>Bank Name &amp; Branch</label><input id="s_bankName"></div>
+        <div class="field"><label>Account No.</label><input id="s_bankAcc"></div>
+        <div class="field"><label>SWIFT Code</label><input id="s_swift"></div>
+        <div class="field span2"><label>Bank Address</label><input id="s_bankAddr"></div>
+        <div class="field"><label>IFSC Code</label><input id="s_ifsc"></div>
+      </div>
+      <div class="section-title">Currency Exchange Rate (₹ per unit — for dual-currency printing)</div>
+      <div class="grid">
+        <div class="field"><label>1 USD = ₹</label><input id="s_rateUSD" type="number" step="0.01" placeholder="83.50"></div>
+        <div class="field"><label>1 EUR = ₹</label><input id="s_rateEUR" type="number" step="0.01" placeholder="90.50"></div>
+        <div class="field"><label>1 GBP = ₹</label><input id="s_rateGBP" type="number" step="0.01" placeholder="105.00"></div>
+      </div>
+      <div class="section-title">Watermark on printed documents</div>
+      <div class="watermark-toggle">
+        <input type="checkbox" id="s_watermarkOn">
+        <label for="s_watermarkOn" style="font-size:13px;">Enable watermark</label>
+        <input id="s_watermarkText" placeholder="e.g. ORIGINAL / XYZ PVT LTD" style="max-width:220px;">
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn primary" onclick="saveMasterForm()">Save Company Settings</button>
+      </div>
+    </div>
+
+    <div class="card c-tax">
+      <div class="flexrow"><h3 style="border:none;margin:0;padding:0;">Parties / Consignees (Buyers)</h3>
+        <button class="btn sm primary" onclick="openPartyForm()">+ Add Party</button></div>
+      <div id="partyFormBox" style="display:none;margin:10px 0;padding:12px;background:var(--accent-soft);border-radius:8px;">
+        <div class="grid">
+          <div class="field span2"><label>Party / Consignee Name</label><input id="p_name"></div>
+          <div class="field span2"><label>Address</label><textarea id="p_address"></textarea></div>
+          <div class="field"><label>Country</label><input id="p_country" list="countryList"></div>
+          <div class="field"><label>Email</label><input id="p_email"></div>
+          <div class="field"><label>Contact No.</label><input id="p_contact"></div>
+          <div class="field"><label>State (agar India ke andar)</label><input id="p_state" list="stateList"></div>
+          <div class="field"><label>Buyer (if different from consignee)</label><input id="p_buyer"></div>
+        </div>
+        <div class="row-flex" style="margin-top:8px;">
+          <button class="btn primary sm" onclick="saveParty()">Save Party</button>
+          <button class="btn ghost sm" onclick="closePartyForm()">Cancel</button>
+        </div>
+        <input type="hidden" id="p_id">
+      </div>
+      <div class="tablewrap"><table id="partyTable"><thead><tr><th>Name</th><th>Country</th><th>Email</th><th>Contact</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="card c-packing">
+      <div class="flexrow"><h3 style="border:none;margin:0;padding:0;">Products</h3>
+        <button class="btn sm primary" onclick="openProductForm()">+ Add Product</button></div>
+      <div id="productFormBox" style="display:none;margin:10px 0;padding:12px;background:var(--accent-soft);border-radius:8px;">
+        <div class="grid">
+          <div class="field span2"><label>Product Name / Description</label><input id="pr_name" placeholder="KI FAST BLUE 4000AQ"></div>
+          <div class="field"><label>Product Code</label><input id="pr_code" placeholder="32XXXX0033"></div>
+          <div class="field"><label>HSN Code</label><input id="pr_hsn"></div>
+          <div class="field"><label>CAS No. (if applicable)</label><input id="pr_cas"></div>
+          <div class="field"><label>GST %</label><input id="pr_gst" type="number" step="0.01" placeholder="0 for export/LUT"></div>
+          <div class="field"><label>Unit</label>
+            <select id="pr_unit"><option>KG</option><option>MT</option><option>PCS</option><option>LTR</option><option>BAG</option></select>
+          </div>
+          <div class="field"><label>Default Rate (USD)</label><input id="pr_rateUSD" type="number" step="0.01"></div>
+          <div class="field"><label>Default Rate (EUR)</label><input id="pr_rateEUR" type="number" step="0.01"></div>
+          <div class="field"><label>Default Rate (INR)</label><input id="pr_rateINR" type="number" step="0.01"></div>
+          <div class="field span2"><label>Default Packaging text</label><input id="pr_pkg" placeholder="25 Bags of 25kg each &amp; 2 Big Bag of 500kg each"></div>
+        </div>
+        <div class="row-flex" style="margin-top:8px;">
+          <button class="btn primary sm" onclick="saveProduct()">Save Product</button>
+          <button class="btn ghost sm" onclick="closeProductForm()">Cancel</button>
+        </div>
+        <input type="hidden" id="pr_id">
+      </div>
+      <div class="tablewrap"><table id="productTable"><thead><tr><th>Product</th><th>HSN</th><th>GST%</th><th>Rate USD</th><th>Rate EUR</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="card c-quote">
+      <h3>Invoice Numbering (auto-increment per document type)</h3>
+      <div class="grid" id="numberingGrid"></div>
+      <div class="hint">Format bana hua hai: <b>PREFIX + running number / financial-year</b>. Aap prefix aur agla number kabhi bhi edit kar sakte hain. Financial year (Apr–Mar) date ke hisaab se apne aap set hota hai.</div>
+    </div>
+
+    <div class="card c-proforma">
+      <h3>Terms &amp; Conditions (editable per document type)</h3>
+      <div id="termsBox"></div>
+      <div class="hint">Yeh default text hai jo har naye document me pre-fill hoga — document banate waqt bhi aap ise us particular invoice ke liye edit kar sakte hain.</div>
+    </div>
+
+    <div class="card c-packing">
+      <h3>Data Backup &amp; Restore</h3>
+      <p class="hint">Saara data (parties, products, saved invoices, ledger) is browser me store hota hai. Browser cache clear karne ya device badalne se pehle backup zaroor le lijiye. Backup ek .json file hai — usi file se kabhi bhi wapas data load kar sakte hain (kisi bhi computer par).</p>
+      <div class="row-flex">
+        <button class="btn primary sm" onclick="exportBackup()">⬇ Download Backup (.json)</button>
+        <input type="file" id="restoreInput" accept="application/json" style="display:none;">
+        <button class="btn sm" onclick="document.getElementById('restoreInput').click()">⬆ Restore from Backup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== NEW DOCUMENT TAB =================== -->
+  <div class="view" id="view-doc">
+    <div class="card c-tax">
+      <h3>Choose Document Type</h3>
+      <div class="type-strip" id="typeStrip"></div>
+      <div class="flexrow">
+        <div class="field" style="max-width:260px;">
+          <label>Invoice / Document No. (auto)</label>
+          <input id="d_invoiceNo" readonly style="font-weight:700;">
+        </div>
+        <div class="field" style="max-width:180px;">
+          <label>Date</label>
+          <input id="d_date" type="date">
+        </div>
+        <div class="field" id="copyTypeField" style="max-width:220px;display:none;">
+          <label>Copy Type</label>
+          <select id="d_copyType"><option>ORIGINAL FOR BUYER</option><option>DUPLICATE FOR TRANSPORTER</option><option>TRIPLICATE FOR EXPORTER</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card c-proforma">
+      <div class="section-title">Buyer (Bill To)</div>
+      <div class="grid">
+        <div class="field span2"><label>Buyer / Party</label>
+          <select id="d_party" onchange="onPartyPick()"><option value="">— select party —</option></select>
+        </div>
+        <div class="field"><label>Buyer's Order No.</label><input id="d_poNo"></div>
+        <div class="field"><label>Buyer's Order Date</label><input id="d_poDate" type="date"></div>
+        <div class="field"><label>Country of Origin</label><input id="d_countryOrigin" list="countryList" value="INDIA"></div>
+        <div class="field"><label>Country of Final Destination</label><input id="d_countryDest" list="countryList"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px;">Ship To / Consignee</div>
+      <div class="row-flex" style="margin-bottom:8px;">
+        <label class="row-flex" style="gap:6px;font-size:13px;"><input type="checkbox" id="d_shipSame" checked onchange="toggleShipTo()" style="width:auto;"> Consignee same as Buyer</label>
+      </div>
+      <div class="grid" id="shipToBox" style="display:none;">
+        <div class="field span2"><label>Consignee / Party (pick from list)</label>
+          <select id="d_shipParty" onchange="onShipPartyPick()"><option value="">— select or fill manually below —</option></select>
+        </div>
+        <div class="field span2"><label>Consignee Name</label><input id="d_shipName"></div>
+        <div class="field span2"><label>Consignee Address</label><textarea id="d_shipAddress"></textarea></div>
+        <div class="field"><label>Country</label><input id="d_shipCountry" list="countryList"></div>
+        <div class="field"><label>Contact / Email</label><input id="d_shipContact"></div>
+        <div class="field"><label>State (agar India ke andar)</label><input id="d_shipState" list="stateList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Buyer (if other than consignee)</div>
+      <div class="grid">
+        <div class="field" id="buyerOtherField"><label>Buyer Name</label><input id="d_buyerOther"></div>
+      </div>
+
+      <div class="section-title" id="shipTitle">Shipment Details</div>
+      <div class="grid">
+        <div class="field"><label id="lab_precarriage">Pre-carriage By</label><input id="d_precarriage" placeholder="ROAD"></div>
+        <div class="field"><label id="lab_receipt">Place of Receipt</label><input id="d_receipt"></div>
+        <div class="field"><label id="lab_vessel">Vessel / Flight No.</label><input id="d_vessel"></div>
+        <div class="field"><label id="lab_loading">Port of Loading</label><input id="d_loading"></div>
+        <div class="field"><label id="lab_discharge">Port of Discharge</label><input id="d_discharge"></div>
+        <div class="field"><label id="lab_finaldest">Final Destination</label><input id="d_finaldest"></div>
+        <div class="field"><label>Incoterm</label>
+          <select id="d_incoterm"><option>EXW</option><option>FOB</option><option>CIF</option><option>CFR</option><option>DAP</option><option>CPT</option></select>
+        </div>
+        <div class="field"><label>Terms of Delivery &amp; Payment</label><input id="d_termsDelivery" placeholder="50% Advance & 50% against scan documents at sight"></div>
+        <div class="field" id="containerField"><label>Container No.</label><input id="d_container"></div>
+        <div class="field" id="sealField"><label>Seal No.</label><input id="d_seal"></div>
+        <div class="field" id="marksField" style="grid-column:span 2;"><label>Marks &amp; Nos.</label><input id="d_marks"></div>
+        <div class="field" id="shipTypeField" style="display:none;"><label>Type of Shipment</label><input id="d_shipType" placeholder="20 FT Container FCL"></div>
+        <div class="field" id="dispatchMethodField" style="display:none;"><label>Method of Dispatch</label><input id="d_dispatchMethod" placeholder="SEA CARGO"></div>
+        <div class="field" id="validTillField" style="display:none;"><label>Quotation Valid Till</label><input id="d_validTill" type="date"></div>
+      </div>
+
+      <div class="section-title">Currency for this document</div>
+      <div class="grid">
+        <div class="field"><label>Transaction Currency</label>
+          <select id="d_currency" onchange="refreshItemsCalc()"><option>USD</option><option>EUR</option><option>INR</option><option>GBP</option></select>
+        </div>
+        <div class="field"><label>Exchange Rate used (₹)</label><input id="d_rateUsed" type="number" step="0.0001"></div>
+        <div class="field" id="lutField"><label class="row-flex" style="gap:6px;"><input type="checkbox" id="d_lut" style="width:auto;"> Export under LUT (0% IGST)</label></div>
+      </div>
+
+      <div class="section-title">E-way Bill (India ke andar Goods Supply ke liye)</div>
+      <div class="row-flex" style="margin-bottom:8px;">
+        <label class="row-flex" style="gap:6px;font-size:13px;"><input type="checkbox" id="d_ewbOn" onchange="toggleEwb()" style="width:auto;"> Yeh domestic (India ke andar) supply hai — E-way Bill details bharni hai</label>
+      </div>
+      <div class="grid" id="ewbBox" style="display:none;">
+        <div class="field"><label>E-way Bill No.</label><input id="d_ewbNo"></div>
+        <div class="field"><label>E-way Bill Date</label><input id="d_ewbDate" type="date"></div>
+        <div class="field"><label>Valid Upto</label><input id="d_ewbValid" type="date"></div>
+        <div class="field"><label>Vehicle No.</label><input id="d_ewbVehicle"></div>
+        <div class="field"><label>Mode of Transport</label>
+          <select id="d_ewbMode"><option>Road</option><option>Rail</option><option>Air</option><option>Ship</option></select>
+        </div>
+        <div class="field"><label>Approx. Distance (km)</label><input id="d_ewbDistance" type="number"></div>
+        <div class="field span2"><label>Transporter Name</label><input id="d_ewbTransporter"></div>
+        <div class="field"><label>Transporter ID (GSTIN)</label><input id="d_ewbTransporterId"></div>
+        <div class="field"><label>Place of Dispatch / State</label><input id="d_ewbDispatchState" list="stateList"></div>
+      </div>
+    </div>
+
+    <div class="card c-packing">
+      <div class="flexrow"><h3 style="border:none;margin:0;padding:0;">Items</h3>
+        <button class="btn sm primary" onclick="addItemRow()">+ Add Item</button></div>
+      <div class="tablewrap"><table class="items-tbl" id="itemsTable">
+        <thead><tr>
+          <th style="min-width:150px;">Product</th><th style="min-width:70px;">HSN</th>
+          <th style="min-width:90px;">Batch No.</th><th style="min-width:130px;">Packaging</th>
+          <th style="min-width:70px;">Qty</th><th style="min-width:55px;">Unit</th>
+          <th style="min-width:70px;">Rate</th><th style="min-width:60px;">GST%</th>
+          <th style="min-width:80px;">Amount</th><th></th>
+        </tr></thead>
+        <tbody id="itemsBody"></tbody>
+      </table></div>
+      <div class="totalbar">
+        <div class="tb"><div class="l">Net Weight</div><input id="d_netWeight" style="width:110px;text-align:right;"></div>
+        <div class="tb"><div class="l">Gross Weight</div><input id="d_grossWeight" style="width:110px;text-align:right;"></div>
+        <div class="tb"><div class="l">Total (<span id="curLbl1">USD</span>)</div><div class="v" id="totalTxn">0.00</div></div>
+        <div class="tb"><div class="l">GST Amount</div><div class="v" id="totalGst">0.00</div></div>
+        <div class="tb"><div class="l">Grand Total (<span id="curLbl2">INR</span>)</div><div class="v" id="totalINR">0.00</div></div>
+      </div>
+      <div class="grid" id="nonPlasticWrap">
+        <div class="field span2"><label>Total non-reusable plastic used in packaging (kgs)</label><input id="d_plasticKg"></div>
+        <div class="field span2"><label>Delivery Terms text</label><input id="d_deliveryTerms" placeholder="Within 30-40 days after date of PO"></div>
+        <div class="field"><label>Transhipment</label>
+          <select id="d_transhipment"><option>Prohibited</option><option>Allowed</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Terms &amp; Conditions (this document)</h3>
+      <textarea id="d_terms" style="min-height:140px;width:100%;padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink);"></textarea>
+    </div>
+
+    <div class="row-flex">
+      <button class="btn primary" onclick="goPreview()">Generate Preview →</button>
+      <button class="btn ghost" onclick="resetDocForm(true)">Clear Form</button>
+    </div>
+  </div>
+
+  <!-- =================== PREVIEW TAB =================== -->
+  <div class="view" id="view-preview">
+    <div class="card">
+      <div class="flexrow">
+        <div class="muted" id="previewSummary">Pehle "New Document" tab me form bhariye.</div>
+        <div class="row-flex">
+          <button class="btn" onclick="switchTab('doc')">← Edit</button>
+          <button class="btn primary" onclick="printPreview()">🖨 Print</button>
+          <button class="btn" onclick="exportPreviewPDF()">⬇ PDF</button>
+          <button class="btn" onclick="exportPreviewExcel()">⬇ Excel</button>
+          <button class="btn" style="background:var(--gold);border-color:var(--gold);color:#fff;" onclick="saveToReport()">✓ Save to Report</button>
+        </div>
+      </div>
+    </div>
+    <div id="previewWrap"><div class="empty">Preview yahan dikhega.</div></div>
+  </div>
+
+  <!-- =================== REPORT TAB =================== -->
+  <div class="view" id="view-report">
+    <div class="summary-strip" id="statStrip"></div>
+    <div class="row-flex" style="margin-bottom:10px;">
+      <select id="reportMode" onchange="renderReport()">
+        <option value="docs">Sales / Documents Report</option>
+        <option value="item">Item-wise Report</option>
+        <option value="balance">Party Balance Report</option>
+      </select>
+    </div>
+    <div class="card" id="docsReportCard">
+      <div class="flexrow" style="margin-bottom:10px;">
+        <h3 style="border:none;margin:0;padding:0;">All Generated Documents</h3>
+        <div class="row-flex">
+          <select id="filterType" onchange="renderReport()">
+            <option value="">All Types</option>
+            <option value="tax">Tax Invoice</option>
+            <option value="proforma">Proforma</option>
+            <option value="packing">Packing List</option>
+            <option value="quote">Quotation</option>
+          </select>
+          <input id="searchBox" placeholder="Search party / no." oninput="renderReport()">
+          <button class="btn sm" onclick="exportReportExcel()">⬇ Export Excel</button>
+        </div>
+      </div>
+      <div class="tablewrap"><table id="reportTable">
+        <thead><tr><th>Type</th><th>Doc No.</th><th>Date</th><th>Party</th><th>Amount</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+    <div class="card c-packing" id="itemReportCard" style="display:none;">
+      <div class="flexrow" style="margin-bottom:10px;"><h3 style="border:none;margin:0;padding:0;">Item-wise Sales Summary</h3>
+        <button class="btn sm" onclick="exportItemReportExcel()">⬇ Export Excel</button></div>
+      <div class="tablewrap"><table id="itemReportTable">
+        <thead><tr><th>Product</th><th>HSN</th><th>Total Qty</th><th>Invoices</th><th>Total ₹ INR</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="row-flex" style="margin-top:12px;">
+        <select id="itemDrillSelect" onchange="renderItemDrill()" style="max-width:260px;"><option value="">— Single item ki detail dekhiye —</option></select>
+      </div>
+      <div class="tablewrap" id="itemDrillWrap" style="display:none;margin-top:8px;"><table id="itemDrillTable">
+        <thead><tr><th>Date</th><th>Invoice No.</th><th>Party</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+    <div class="card c-proforma" id="balanceReportCard" style="display:none;">
+      <div class="flexrow" style="margin-bottom:10px;"><h3 style="border:none;margin:0;padding:0;">Party-wise Balance</h3>
+        <button class="btn sm" onclick="exportBalanceReportExcel()">⬇ Export Excel</button></div>
+      <div class="tablewrap"><table id="balanceReportTable">
+        <thead><tr><th>Party</th><th>Total Sales (₹)</th><th>Total Received (₹)</th><th>Balance Due (₹)</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- =================== LEDGER TAB =================== -->
+  <div class="view" id="view-ledger">
+    <div class="card c-gold">
+      <h3>Add Payment / Advance / Adjustment Entry</h3>
+      <div class="grid">
+        <div class="field span2"><label>Party</label>
+          <select id="l_party"><option value="">— select party —</option></select>
+        </div>
+        <div class="field"><label>Date</label><input id="l_date" type="date"></div>
+        <div class="field"><label>Entry Type</label>
+          <select id="l_type"><option>Advance Received</option><option>Payment Received</option><option>Refund / Debit Note</option><option>Adjustment</option></select>
+        </div>
+        <div class="field"><label>Currency</label><select id="l_currency"><option>USD</option><option>EUR</option><option>INR</option><option>GBP</option></select></div>
+        <div class="field"><label>Amount</label><input id="l_amount" type="number" step="0.01"></div>
+        <div class="field span2"><label>Note / Reference</label><input id="l_note" placeholder="e.g. against Invoice KI/EXP/01/25-26"></div>
+      </div>
+      <button class="btn primary" onclick="addLedgerEntry()" style="margin-top:10px;">+ Add Entry</button>
+    </div>
+    <div class="card c-tax">
+      <div class="flexrow" style="margin-bottom:10px;">
+        <h3 style="border:none;margin:0;padding:0;">Ledger — All Entries</h3>
+        <div class="row-flex">
+          <select id="l_filterParty" onchange="renderLedger()"><option value="">All Parties</option></select>
+          <button class="btn sm" onclick="printLedgerStatement()">🖨 Print Statement</button>
+          <button class="btn sm" onclick="exportLedgerExcel()">⬇ Export Excel</button>
+        </div>
+      </div>
+      <div id="ledgerBalanceBox" class="muted" style="margin-bottom:8px;"></div>
+      <div class="tablewrap"><table id="ledgerTable">
+        <thead><tr><th>Date</th><th>Party</th><th>Type</th><th>Amount</th><th>₹ INR</th><th>Note</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STORAGE HELPERS ================= */
+const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cambodia","Cameroon","Canada","Chad","Chile","China","Colombia","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominican Republic","Ecuador","Egypt","El Salvador","Estonia","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Guatemala","Guinea","Guyana","Haiti","Honduras","Hong Kong","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Togo","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Uganda","UAE","UK","Ukraine","Uruguay","USA","Uzbekistan","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+const INDIA_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"];
+function populateGeoLists(){
+  document.getElementById('countryList').innerHTML = COUNTRIES.map(c=>'<option value="'+c+'">').join('');
+  document.getElementById('stateList').innerHTML = INDIA_STATES.map(s=>'<option value="'+s+'">').join('');
+}
+const LS_MASTERS='eds_masters_v1', LS_INVOICES='eds_invoices_v1', LS_LEDGER='eds_ledger_v1';
+function lsGet(key,fallback){
+  try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }
+  catch(e){ return fallback; }
+}
+function lsSet(key,val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch(e){ return false; }
+}
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function uid(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ================= CUSTOM MODAL (replaces native confirm/prompt — blocked inside artifact iframe) ================= */
+function showModal(html){
+  document.getElementById('genericModalBody').innerHTML=html;
+  document.getElementById('genericModal').style.display='flex';
+}
+function hideModal(){ document.getElementById('genericModal').style.display='none'; }
+function customConfirm(msg, onYes){
+  showModal('<h2 style="color:var(--danger);font-size:16px;">Confirm</h2><p>'+esc(msg)+'</p>'+
+    '<div class="row-flex" style="justify-content:center;margin-top:12px;"><button class="btn danger" id="cfYesBtn">Haan, Confirm</button><button class="btn ghost" id="cfNoBtn">Cancel</button></div>');
+  document.getElementById('cfYesBtn').onclick=()=>{ hideModal(); onYes(); };
+  document.getElementById('cfNoBtn').onclick=hideModal;
+}
+function customPrompt(msg, def, onOk){
+  showModal('<h2 style="font-size:16px;">'+esc(msg)+'</h2>'+
+    '<input id="pfInputBox" value="'+esc(def||'')+'" style="width:100%;padding:9px;border-radius:7px;border:1px solid var(--line);margin:10px 0;background:var(--paper);color:var(--ink);">'+
+    '<div class="row-flex" style="justify-content:center;"><button class="btn primary" id="pfOkBtn">OK</button><button class="btn ghost" id="pfCancelBtn">Cancel</button></div>');
+  document.getElementById('pfOkBtn').onclick=()=>{ const v=document.getElementById('pfInputBox').value; hideModal(); onOk(v); };
+  document.getElementById('pfCancelBtn').onclick=hideModal;
+  document.getElementById('pfInputBox').focus();
+}
+
+/* ================= DEFAULT MASTER DATA ================= */
+const DOC_TYPES = {
+  tax:      { label:'Tax / Commercial Invoice', short:'Tax Invoice', color:'var(--tax)', soft:'var(--tax-soft)', prefix:'KI/EXP/', band:'COMMERCIAL TAX INVOICE' },
+  proforma: { label:'Proforma Invoice', short:'Proforma', color:'var(--proforma)', soft:'var(--proforma-soft)', prefix:'KI/PI/', band:'PROFORMA INVOICE' },
+  packing:  { label:'Packing List', short:'Packing List', color:'var(--packing)', soft:'var(--packing-soft)', prefix:'KI/PL/', band:'PACKING LIST' },
+  quote:    { label:'Quotation', short:'Quotation', color:'var(--quote)', soft:'var(--quote-soft)', prefix:'KI/QT/', band:'QUOTATION' }
+};
+const DEFAULT_TERMS = {
+  tax: "We declare that this Invoice shows the actual price of the goods described and that all particulars are true and correct.\nSupply meant for export under LUT without payment of IGST.",
+  proforma: "Delivery: within 30-40 days after date of PO.\nTranshipment: Prohibited.\nThis is a Proforma Invoice issued for reference purpose; final Tax Invoice will be issued at the time of shipment.",
+  packing: "We declare that this Packing List shows the actual packing details of the goods described and that all particulars are true and correct.",
+  quote: "Payment Terms: 100% advance payment against Proforma Invoice.\nQuotation Validity: 3 days from date of issue.\nAny disputes subject to jurisdiction of courts at Surat, Gujarat, India."
+};
+function defaultCompany(id){
+  return { id:id||uid(), name:'', address:'', phone:'', email:'', gstin:'', iec:'', vat:'', placeOfSupply:'', state:'',
+    bankName:'', bankAcc:'', swift:'', bankAddr:'', ifsc:'', rateUSD:83.5, rateEUR:90.5, rateGBP:105,
+    watermarkOn:false, watermarkText:'', logo:'', logoSize:70 };
+}
+function defaultMasters(){
+  const co=defaultCompany('co1');
+  return {
+    companies:[co], activeCompanyId:co.id,
+    parties:[],
+    products:[],
+    counters:{ tax:1, proforma:1, packing:1, quote:1 },
+    prefixes:{ tax:'KI/EXP/', proforma:'KI/PI/', packing:'KI/PL/', quote:'KI/QT/' },
+    terms:{ ...DEFAULT_TERMS },
+    license:{ expiry:'', passHash:'' },
+    authUsers:[]
+  };
+}
+let M = lsGet(LS_MASTERS, null) || defaultMasters();
+// migrate old single-company schema
+if(M.company && !M.companies){
+  const co=Object.assign(defaultCompany('co1'), M.company);
+  M.companies=[co]; M.activeCompanyId=co.id; delete M.company;
+}
+// backfill any missing keys (future-proofing)
+M = Object.assign(defaultMasters(), M, {
+  companies: (M.companies && M.companies.length) ? M.companies : defaultMasters().companies,
+  counters:Object.assign(defaultMasters().counters, M.counters||{}),
+  prefixes:Object.assign(defaultMasters().prefixes, M.prefixes||{}),
+  terms:Object.assign(defaultMasters().terms, M.terms||{}),
+  license:Object.assign({expiry:'',passHash:''}, M.license||{}),
+  authUsers: M.authUsers || []
+});
+if(!M.activeCompanyId || !M.companies.find(c=>c.id===M.activeCompanyId)) M.activeCompanyId=M.companies[0].id;
+M.companies = M.companies.map(co=>Object.assign(defaultCompany(co.id), co));
+function CO(){ return M.companies.find(c=>c.id===M.activeCompanyId) || M.companies[0]; }
+let INVOICES = lsGet(LS_INVOICES, []);
+let LEDGER = lsGet(LS_LEDGER, []);
+function persistM(){ lsSet(LS_MASTERS, M); }
+function persistInv(){ lsSet(LS_INVOICES, INVOICES); }
+function persistLedger(){ lsSet(LS_LEDGER, LEDGER); }
+
+/* ================= TABS ================= */
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+});
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+  if(name==='report') renderReport();
+  if(name==='ledger') renderLedger();
+  if(name==='doc') renderPartyOptions();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+/* ================= SETUP: load/save form ================= */
+function renderCompanySelect(){
+  const sel=document.getElementById('companySelect');
+  sel.innerHTML = M.companies.map(c=>'<option value="'+c.id+'"'+(c.id===M.activeCompanyId?' selected':'')+'>'+esc(c.name||'(Unnamed Company)')+'</option>').join('');
+}
+function switchCompany(){
+  M.activeCompanyId = document.getElementById('companySelect').value;
+  persistM();
+  loadMasterForm();
+  toast('Switched company');
+}
+function addCompany(){
+  customPrompt('Naye company ka naam daaliye:', '', function(name){
+    if(!name || !name.trim()) return;
+    const co=defaultCompany(); co.name=name.trim();
+    M.companies.push(co); M.activeCompanyId=co.id; persistM();
+    loadMasterForm(); toast('New company added');
+  });
+}
+function removeCompany(){
+  if(M.companies.length<=1){ toast('Kam se kam ek company zaroori hai'); return; }
+  customConfirm('Is company profile ko delete karna hai? (Parties/Products/Invoices affect nahi honge)', function(){
+    M.companies = M.companies.filter(c=>c.id!==M.activeCompanyId);
+    M.activeCompanyId = M.companies[0].id;
+    persistM(); loadMasterForm(); toast('Company deleted');
+  });
+}
+function loadMasterForm(){
+  renderCompanySelect();
+  const c=CO();
+  document.getElementById('s_companyName').value=c.name;
+  document.getElementById('s_companyAddress').value=c.address;
+  document.getElementById('s_companyPhone').value=c.phone;
+  document.getElementById('s_companyEmail').value=c.email;
+  document.getElementById('s_gstin').value=c.gstin;
+  document.getElementById('s_iec').value=c.iec;
+  document.getElementById('s_vat').value=c.vat;
+  document.getElementById('s_placeOfSupply').value=c.placeOfSupply;
+  document.getElementById('s_state').value=c.state||'';
+  document.getElementById('s_bankName').value=c.bankName;
+  document.getElementById('s_bankAcc').value=c.bankAcc;
+  document.getElementById('s_swift').value=c.swift;
+  document.getElementById('s_bankAddr').value=c.bankAddr;
+  document.getElementById('s_ifsc').value=c.ifsc;
+  document.getElementById('s_rateUSD').value=c.rateUSD;
+  document.getElementById('s_rateEUR').value=c.rateEUR;
+  document.getElementById('s_rateGBP').value=c.rateGBP;
+  document.getElementById('s_watermarkOn').checked=c.watermarkOn;
+  document.getElementById('s_watermarkText').value=c.watermarkText;
+  renderLogoPreview();
+  document.getElementById('companyTagline').textContent = c.name ? c.name+' — Export Documentation' : 'Tax Invoice · Proforma · Packing List · Quotation';
+  renderNumberingGrid();
+  renderTermsBox();
+  renderPartyTable();
+  renderProductTable();
+}
+function saveMasterForm(){
+  const c=CO();
+  c.name=document.getElementById('s_companyName').value.trim();
+  c.address=document.getElementById('s_companyAddress').value.trim();
+  c.phone=document.getElementById('s_companyPhone').value.trim();
+  c.email=document.getElementById('s_companyEmail').value.trim();
+  c.gstin=document.getElementById('s_gstin').value.trim();
+  c.iec=document.getElementById('s_iec').value.trim();
+  c.vat=document.getElementById('s_vat').value.trim();
+  c.placeOfSupply=document.getElementById('s_placeOfSupply').value.trim();
+  c.state=document.getElementById('s_state').value.trim();
+  c.bankName=document.getElementById('s_bankName').value.trim();
+  c.bankAcc=document.getElementById('s_bankAcc').value.trim();
+  c.swift=document.getElementById('s_swift').value.trim();
+  c.bankAddr=document.getElementById('s_bankAddr').value.trim();
+  c.ifsc=document.getElementById('s_ifsc').value.trim();
+  c.rateUSD=parseFloat(document.getElementById('s_rateUSD').value)||0;
+  c.rateEUR=parseFloat(document.getElementById('s_rateEUR').value)||0;
+  c.rateGBP=parseFloat(document.getElementById('s_rateGBP').value)||0;
+  c.watermarkOn=document.getElementById('s_watermarkOn').checked;
+  c.watermarkText=document.getElementById('s_watermarkText').value.trim();
+  persistM();
+  document.getElementById('companyTagline').textContent = c.name ? c.name+' — Export Documentation' : 'Tax Invoice · Proforma · Packing List · Quotation';
+  toast('Company settings saved');
+}
+document.getElementById('logoInput').addEventListener('change', function(e){
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size> 1.5*1024*1024){ toast('Logo bahut badi hai, 1.5MB se chhoti image chuniye'); return; }
+  const reader=new FileReader();
+  reader.onload=function(ev){ CO().logo=ev.target.result; persistM(); renderLogoPreview(); toast('Logo saved'); };
+  reader.readAsDataURL(f);
+});
+function clearLogo(){ CO().logo=''; persistM(); renderLogoPreview(); }
+function renderLogoPreview(){
+  const box=document.getElementById('logoPreview');
+  box.innerHTML = CO().logo ? '<img src="'+CO().logo+'">' : '<span class="muted" style="font-size:10px;">No logo</span>';
+  const sz=CO().logoSize||70;
+  document.getElementById('s_logoSize').value=sz;
+  document.getElementById('s_logoSizeLabel').textContent=sz+'px';
+}
+function onLogoSizeChange(){
+  const sz=parseInt(document.getElementById('s_logoSize').value)||70;
+  CO().logoSize=sz;
+  document.getElementById('s_logoSizeLabel').textContent=sz+'px';
+  persistM();
+}
+
+/* ---- Numbering ---- */
+function renderNumberingGrid(){
+  const grid=document.getElementById('numberingGrid'); grid.innerHTML='';
+  Object.keys(DOC_TYPES).forEach(k=>{
+    const dt=DOC_TYPES[k];
+    const div=document.createElement('div');
+    div.innerHTML = '<div class="field"><label>'+dt.short+' — Prefix</label><input data-pfx="'+k+'" value="'+(M.prefixes[k]||'')+'"></div>'+
+      '<div class="field"><label>'+dt.short+' — Next Number</label><input data-cnt="'+k+'" type="number" min="1" value="'+(M.counters[k]||1)+'"></div>';
+    grid.appendChild(div);
+  });
+  grid.querySelectorAll('input[data-pfx]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ M.prefixes[inp.dataset.pfx]=inp.value; persistM(); });
+  });
+  grid.querySelectorAll('input[data-cnt]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ M.counters[inp.dataset.cnt]=parseInt(inp.value)||1; persistM(); });
+  });
+}
+/* ---- Terms ---- */
+function renderTermsBox(){
+  const box=document.getElementById('termsBox'); box.innerHTML='';
+  Object.keys(DOC_TYPES).forEach(k=>{
+    const dt=DOC_TYPES[k];
+    const wrap=document.createElement('div'); wrap.style.marginBottom='10px';
+    wrap.innerHTML='<div class="field"><label>'+dt.short+'</label><textarea data-terms="'+k+'" style="min-height:70px;">'+(M.terms[k]||'')+'</textarea></div>';
+    box.appendChild(wrap);
+  });
+  box.querySelectorAll('textarea[data-terms]').forEach(ta=>{
+    ta.addEventListener('change', ()=>{ M.terms[ta.dataset.terms]=ta.value; persistM(); });
+  });
+}
+
+/* ---- Parties CRUD ---- */
+function openPartyForm(id){
+  document.getElementById('partyFormBox').style.display='block';
+  if(id){
+    const p=M.parties.find(x=>x.id===id);
+    document.getElementById('p_id').value=p.id;
+    document.getElementById('p_name').value=p.name;
+    document.getElementById('p_address').value=p.address;
+    document.getElementById('p_country').value=p.country;
+    document.getElementById('p_email').value=p.email;
+    document.getElementById('p_contact').value=p.contact;
+    document.getElementById('p_state').value=p.state||'';
+    document.getElementById('p_buyer').value=p.buyer||'';
+  } else {
+    ['p_id','p_name','p_address','p_country','p_email','p_contact','p_state','p_buyer'].forEach(i=>document.getElementById(i).value='');
+  }
+}
+function closePartyForm(){ document.getElementById('partyFormBox').style.display='none'; }
+function saveParty(){
+  const name=document.getElementById('p_name').value.trim();
+  if(!name){ toast('Party name daaliye'); return; }
+  let id=document.getElementById('p_id').value;
+  const obj={ id: id||uid(), name, address:document.getElementById('p_address').value.trim(),
+    country:document.getElementById('p_country').value.trim(), email:document.getElementById('p_email').value.trim(),
+    contact:document.getElementById('p_contact').value.trim(), state:document.getElementById('p_state').value.trim(),
+    buyer:document.getElementById('p_buyer').value.trim() };
+  const idx=M.parties.findIndex(x=>x.id===obj.id);
+  if(idx>=0) M.parties[idx]=obj; else M.parties.push(obj);
+  persistM(); renderPartyTable(); closePartyForm(); toast('Party saved');
+}
+function deleteParty(id){ customConfirm('Delete this party?', function(){ M.parties=M.parties.filter(x=>x.id!==id); persistM(); renderPartyTable(); }); }
+function renderPartyTable(){
+  const tb=document.querySelector('#partyTable tbody'); tb.innerHTML='';
+  if(!M.parties.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Koi party abhi tak add nahi hui</td></tr>'; return; }
+  M.parties.forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(p.name)+'</td><td>'+esc(p.country)+'</td><td>'+esc(p.email)+'</td><td>'+esc(p.contact)+'</td>'+
+      '<td><button class="icon-btn" onclick="openPartyForm(\''+p.id+'\')">✎</button><button class="icon-btn del" onclick="deleteParty(\''+p.id+'\')">🗑</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+/* ---- Products CRUD ---- */
+function openProductForm(id){
+  document.getElementById('productFormBox').style.display='block';
+  if(id){
+    const p=M.products.find(x=>x.id===id);
+    document.getElementById('pr_id').value=p.id;
+    document.getElementById('pr_name').value=p.name;
+    document.getElementById('pr_code').value=p.code||'';
+    document.getElementById('pr_hsn').value=p.hsn||'';
+    document.getElementById('pr_cas').value=p.cas||'';
+    document.getElementById('pr_gst').value=p.gst||0;
+    document.getElementById('pr_unit').value=p.unit||'KG';
+    document.getElementById('pr_rateUSD').value=p.rateUSD||'';
+    document.getElementById('pr_rateEUR').value=p.rateEUR||'';
+    document.getElementById('pr_rateINR').value=p.rateINR||'';
+    document.getElementById('pr_pkg').value=p.pkg||'';
+  } else {
+    ['pr_id','pr_name','pr_code','pr_hsn','pr_cas','pr_gst','pr_rateUSD','pr_rateEUR','pr_rateINR','pr_pkg'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('pr_unit').value='KG';
+  }
+}
+function closeProductForm(){ document.getElementById('productFormBox').style.display='none'; }
+function saveProduct(){
+  const name=document.getElementById('pr_name').value.trim();
+  if(!name){ toast('Product name daaliye'); return; }
+  let id=document.getElementById('pr_id').value;
+  const obj={ id:id||uid(), name, code:document.getElementById('pr_code').value.trim(),
+    hsn:document.getElementById('pr_hsn').value.trim(), cas:document.getElementById('pr_cas').value.trim(),
+    gst:parseFloat(document.getElementById('pr_gst').value)||0, unit:document.getElementById('pr_unit').value,
+    rateUSD:parseFloat(document.getElementById('pr_rateUSD').value)||0,
+    rateEUR:parseFloat(document.getElementById('pr_rateEUR').value)||0,
+    rateINR:parseFloat(document.getElementById('pr_rateINR').value)||0,
+    pkg:document.getElementById('pr_pkg').value.trim() };
+  const idx=M.products.findIndex(x=>x.id===obj.id);
+  if(idx>=0) M.products[idx]=obj; else M.products.push(obj);
+  persistM(); renderProductTable(); closeProductForm(); toast('Product saved');
+}
+function deleteProduct(id){ customConfirm('Delete this product?', function(){ M.products=M.products.filter(x=>x.id!==id); persistM(); renderProductTable(); }); }
+function renderProductTable(){
+  const tb=document.querySelector('#productTable tbody'); tb.innerHTML='';
+  if(!M.products.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Koi product abhi tak add nahi hua</td></tr>'; return; }
+  M.products.forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(p.name)+'</td><td>'+esc(p.hsn)+'</td><td>'+p.gst+'%</td><td>'+p.rateUSD+'</td><td>'+p.rateEUR+'</td>'+
+      '<td><button class="icon-btn" onclick="openProductForm(\''+p.id+'\')">✎</button><button class="icon-btn del" onclick="deleteProduct(\''+p.id+'\')">🗑</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= NEW DOCUMENT FORM ================= */
+let currentType='tax';
+let itemRows=[];
+
+function renderTypeStrip(){
+  const strip=document.getElementById('typeStrip'); strip.innerHTML='';
+  Object.keys(DOC_TYPES).forEach(k=>{
+    const dt=DOC_TYPES[k];
+    const b=document.createElement('button');
+    b.className='type-btn'+(k===currentType?' sel':'');
+    b.style.setProperty('--sel-color', dt.color); b.style.setProperty('--sel-bg', dt.soft);
+    b.innerHTML='<b>'+dt.short+'</b><span>'+nextNumberPreview(k)+'</span>';
+    b.onclick=()=>{ currentType=k; onTypeChange(); };
+    strip.appendChild(b);
+  });
+}
+function nextNumberPreview(k){
+  return (M.prefixes[k]||'') + pad(M.counters[k]||1,2) + '/' + fyLabel(new Date());
+}
+function pad(n,len){ n=String(n); while(n.length<len) n='0'+n; return n; }
+function fyLabel(d){
+  const y=d.getFullYear(), m=d.getMonth()+1;
+  const startY = m>=4 ? y : y-1;
+  return (String(startY).slice(2))+'-'+String(startY+1).slice(2);
+}
+function onTypeChange(){
+  renderTypeStrip();
+  document.getElementById('d_invoiceNo').value = nextNumberPreview(currentType);
+  document.getElementById('copyTypeField').style.display = currentType==='tax' ? '' : 'none';
+  document.getElementById('lutField').style.display = currentType==='tax' ? '' : 'none';
+  document.getElementById('nonPlasticWrap').style.display = (currentType==='tax'||currentType==='packing') ? '' : 'none';
+  document.getElementById('shipTypeField').style.display = currentType==='quote' ? '' : 'none';
+  document.getElementById('dispatchMethodField').style.display = currentType==='quote' ? '' : 'none';
+  document.getElementById('validTillField').style.display = currentType==='quote' ? '' : 'none';
+  document.getElementById('marksField').style.display = currentType==='quote' ? 'none' : '';
+  document.getElementById('containerField').style.display = currentType==='quote' ? 'none' : '';
+  document.getElementById('sealField').style.display = currentType==='quote' ? 'none' : '';
+  document.getElementById('lab_vessel').textContent = currentType==='quote' ? 'Method of Dispatch (detail)' : 'Vessel / Flight No.';
+  document.getElementById('lab_loading').textContent = currentType==='quote' ? 'Port of Lading' : 'Port of Loading';
+  document.getElementById('lab_discharge').textContent = currentType==='quote' ? 'Port of Delivery' : 'Port of Discharge';
+  if(!document.getElementById('d_terms').dataset.userEdited){
+    document.getElementById('d_terms').value = M.terms[currentType]||'';
+  }
+}
+document.getElementById('d_terms').addEventListener('input', function(){ this.dataset.userEdited='1'; });
+
+function renderPartyOptions(){
+  const opts='<option value="">— select party —</option>'+M.parties.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+  const sel=document.getElementById('d_party'); const cur=sel.value; sel.innerHTML=opts; sel.value=cur;
+  const sel2=document.getElementById('d_shipParty'); const cur2=sel2.value;
+  sel2.innerHTML='<option value="">— select or fill manually below —</option>'+M.parties.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+  sel2.value=cur2;
+}
+function onPartyPick(){
+  const id=document.getElementById('d_party').value;
+  const p=M.parties.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('d_countryDest').value=p.country||'';
+  document.getElementById('d_buyerOther').value=p.buyer||'';
+}
+function toggleShipTo(){
+  const same=document.getElementById('d_shipSame').checked;
+  document.getElementById('shipToBox').style.display = same ? 'none' : '';
+}
+function toggleEwb(){
+  document.getElementById('ewbBox').style.display = document.getElementById('d_ewbOn').checked ? '' : 'none';
+}
+function onShipPartyPick(){
+  const id=document.getElementById('d_shipParty').value;
+  const p=M.parties.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('d_shipName').value=p.name||'';
+  document.getElementById('d_shipAddress').value=p.address||'';
+  document.getElementById('d_shipCountry').value=p.country||'';
+  document.getElementById('d_shipContact').value=p.email||p.contact||'';
+  document.getElementById('d_shipState').value=p.state||'';
+}
+
+function currentRate(){
+  const cur=document.getElementById('d_currency').value;
+  return cur==='USD'?CO().rateUSD:cur==='EUR'?CO().rateEUR:cur==='GBP'?CO().rateGBP:1;
+}
+document.getElementById('d_currency').addEventListener('change', ()=>{
+  document.getElementById('d_rateUsed').value = currentRate();
+  refreshItemsCalc();
+});
+
+function productOptionsHtml(selId){
+  return '<option value="">— product —</option>'+M.products.map(p=>'<option value="'+p.id+'"'+(p.id===selId?' selected':'')+'>'+esc(p.name)+'</option>').join('');
+}
+function addItemRow(prefill){
+  const row = prefill || { productId:'', desc:'', hsn:'', cas:'', batch:'', pkg:'', qty:'', unit:'KG', rate:'', gst:0 };
+  const rid=uid();
+  row._rid=rid;
+  itemRows.push(row);
+  renderItemsTable();
+}
+function removeItemRow(rid){ itemRows=itemRows.filter(r=>r._rid!==rid); renderItemsTable(); }
+function renderItemsTable(){
+  const tb=document.getElementById('itemsBody'); tb.innerHTML='';
+  if(!itemRows.length){ tb.innerHTML='<tr><td colspan="10" class="empty">Upar "+ Add Item" dabakar product jodiye</td></tr>'; }
+  itemRows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML =
+      '<td><select onchange="pickProductForRow(\''+r._rid+'\',this.value)">'+productOptionsHtml(r.productId)+'</select></td>'+
+      '<td><input value="'+esc(r.hsn)+'" onchange="updRow(\''+r._rid+'\',\'hsn\',this.value)"></td>'+
+      '<td><input value="'+esc(r.batch)+'" onchange="updRow(\''+r._rid+'\',\'batch\',this.value)"></td>'+
+      '<td><input value="'+esc(r.pkg)+'" onchange="updRow(\''+r._rid+'\',\'pkg\',this.value)"></td>'+
+      '<td><input type="number" value="'+esc(r.qty)+'" onchange="updRow(\''+r._rid+'\',\'qty\',this.value)" style="width:64px;"></td>'+
+      '<td><select onchange="updRow(\''+r._rid+'\',\'unit\',this.value)">'+['KG','MT','PCS','LTR','BAG'].map(u=>'<option'+(u===r.unit?' selected':'')+'>'+u+'</option>').join('')+'</select></td>'+
+      '<td><input type="number" value="'+esc(r.rate)+'" onchange="updRow(\''+r._rid+'\',\'rate\',this.value)" style="width:64px;"></td>'+
+      '<td><input type="number" value="'+esc(r.gst)+'" onchange="updRow(\''+r._rid+'\',\'gst\',this.value)" style="width:50px;"></td>'+
+      '<td class="right">'+ (( (parseFloat(r.qty)||0) * (parseFloat(r.rate)||0) ).toFixed(2)) +'</td>'+
+      '<td><button class="icon-btn del" onclick="removeItemRow(\''+r._rid+'\')">✕</button></td>';
+    tb.appendChild(tr);
+  });
+  refreshItemsCalc();
+}
+function pickProductForRow(rid, prodId){
+  const r=itemRows.find(x=>x._rid===rid); if(!r) return;
+  const p=M.products.find(x=>x.id===prodId);
+  r.productId=prodId;
+  if(p){
+    r.desc=p.name; r.hsn=p.hsn; r.cas=p.cas; r.pkg=p.pkg||r.pkg; r.unit=p.unit||r.unit; r.gst=p.gst||0;
+    const cur=document.getElementById('d_currency').value;
+    r.rate = cur==='USD'?p.rateUSD:cur==='EUR'?p.rateEUR:cur==='GBP'?0:p.rateINR;
+  }
+  renderItemsTable();
+}
+function updRow(rid, field, val){
+  const r=itemRows.find(x=>x._rid===rid); if(!r) return;
+  r[field]=val; refreshItemsCalc();
+}
+function refreshItemsCalc(){
+  let total=0, gstAmt=0;
+  itemRows.forEach(r=>{
+    const amt=(parseFloat(r.qty)||0)*(parseFloat(r.rate)||0);
+    total+=amt; gstAmt += amt*((parseFloat(r.gst)||0)/100);
+  });
+  document.getElementById('totalTxn').textContent = fmtNum(total);
+  document.getElementById('totalGst').textContent = fmtNum(gstAmt);
+  const cur=document.getElementById('d_currency').value;
+  const secCur = cur==='INR' ? 'USD' : 'INR';
+  const secRate = cur==='INR' ? 1/(CO().rateUSD||1) : (parseFloat(document.getElementById('d_rateUsed').value)||currentRate());
+  document.getElementById('curLbl1').textContent = cur;
+  document.getElementById('curLbl2').textContent = secCur;
+  document.getElementById('totalINR').textContent = fmtNum((total+gstAmt)*secRate);
+  // update row amounts visually without full rerender flash
+  document.querySelectorAll('#itemsBody tr').forEach((tr,i)=>{
+    const r=itemRows[i]; if(!r) return;
+    const amt=(parseFloat(r.qty)||0)*(parseFloat(r.rate)||0);
+    const cell=tr.children[8]; if(cell) cell.textContent=fmtNum(amt);
+  });
+}
+function fmtNum(n){ return (n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function resetDocForm(clearAll){
+  document.getElementById('d_date').value = new Date().toISOString().slice(0,10);
+  if(clearAll){
+    ['d_buyerOther','d_poNo','d_precarriage','d_receipt','d_vessel','d_loading','d_discharge','d_finaldest',
+     'd_termsDelivery','d_container','d_seal','d_marks','d_shipType','d_dispatchMethod','d_plasticKg',
+     'd_deliveryTerms','d_netWeight','d_grossWeight'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('d_party').value='';
+    document.getElementById('d_shipSame').checked=true; toggleShipTo();
+    ['d_shipParty','d_shipName','d_shipAddress','d_shipCountry','d_shipContact','d_shipState'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('d_ewbOn').checked=false; toggleEwb();
+    ['d_ewbNo','d_ewbDate','d_ewbValid','d_ewbVehicle','d_ewbDistance','d_ewbTransporter','d_ewbTransporterId','d_ewbDispatchState'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('d_countryOrigin').value='INDIA';
+    document.getElementById('d_countryDest').value='';
+    document.getElementById('d_incoterm').value='FOB';
+    itemRows=[]; renderItemsTable();
+    document.getElementById('d_terms').value = M.terms[currentType]||'';
+    delete document.getElementById('d_terms').dataset.userEdited;
+  }
+  document.getElementById('d_rateUsed').value=currentRate();
+  document.getElementById('d_invoiceNo').value=nextNumberPreview(currentType);
+}
+
+/* ================= PREVIEW GENERATION ================= */
+function collectDoc(){
+  const partyId=document.getElementById('d_party').value;
+  const party=M.parties.find(p=>p.id===partyId) || {name:'',address:'',country:'',email:'',contact:''};
+  const shipSame=document.getElementById('d_shipSame').checked;
+  const shipTo = shipSame ? party : {
+    name:document.getElementById('d_shipName').value,
+    address:document.getElementById('d_shipAddress').value,
+    country:document.getElementById('d_shipCountry').value,
+    email:document.getElementById('d_shipContact').value,
+    state:document.getElementById('d_shipState').value
+  };
+  return {
+    type: currentType,
+    invoiceNo: document.getElementById('d_invoiceNo').value,
+    date: document.getElementById('d_date').value,
+    copyType: document.getElementById('d_copyType').value,
+    party: party,
+    shipTo: shipTo, shipSame: shipSame,
+    buyerOther: document.getElementById('d_buyerOther').value,
+    poNo: document.getElementById('d_poNo').value,
+    poDate: document.getElementById('d_poDate').value,
+    countryOrigin: document.getElementById('d_countryOrigin').value,
+    countryDest: document.getElementById('d_countryDest').value,
+    precarriage: document.getElementById('d_precarriage').value,
+    receipt: document.getElementById('d_receipt').value,
+    vessel: document.getElementById('d_vessel').value,
+    loading: document.getElementById('d_loading').value,
+    discharge: document.getElementById('d_discharge').value,
+    finaldest: document.getElementById('d_finaldest').value,
+    incoterm: document.getElementById('d_incoterm').value,
+    termsDelivery: document.getElementById('d_termsDelivery').value,
+    container: document.getElementById('d_container').value,
+    seal: document.getElementById('d_seal').value,
+    marks: document.getElementById('d_marks').value,
+    shipType: document.getElementById('d_shipType').value,
+    dispatchMethod: document.getElementById('d_dispatchMethod').value,
+    validTill: document.getElementById('d_validTill').value,
+    currency: document.getElementById('d_currency').value,
+    rateUsed: parseFloat(document.getElementById('d_rateUsed').value)||currentRate(),
+    lut: document.getElementById('d_lut').checked,
+    ewbOn: document.getElementById('d_ewbOn').checked,
+    ewbNo: document.getElementById('d_ewbNo').value,
+    ewbDate: document.getElementById('d_ewbDate').value,
+    ewbValid: document.getElementById('d_ewbValid').value,
+    ewbVehicle: document.getElementById('d_ewbVehicle').value,
+    ewbMode: document.getElementById('d_ewbMode').value,
+    ewbDistance: document.getElementById('d_ewbDistance').value,
+    ewbTransporter: document.getElementById('d_ewbTransporter').value,
+    ewbTransporterId: document.getElementById('d_ewbTransporterId').value,
+    ewbDispatchState: document.getElementById('d_ewbDispatchState').value,
+    netWeight: document.getElementById('d_netWeight').value,
+    grossWeight: document.getElementById('d_grossWeight').value,
+    plasticKg: document.getElementById('d_plasticKg').value,
+    deliveryTerms: document.getElementById('d_deliveryTerms').value,
+    transhipment: document.getElementById('d_transhipment').value,
+    terms: document.getElementById('d_terms').value,
+    items: JSON.parse(JSON.stringify(itemRows)),
+  };
+}
+function calcTotals(doc){
+  let total=0, gst=0;
+  doc.items.forEach(r=>{ const amt=(parseFloat(r.qty)||0)*(parseFloat(r.rate)||0); total+=amt; gst+=amt*((parseFloat(r.gst)||0)/100); });
+  const grand=total+gst;
+  const sec=secInfo(doc);
+  const inr = sec.conv(grand);
+  return {total,gst,grand,inr,secCode:sec.code,secSym:sec.sym};
+}
+const CUR_SYMBOL={USD:'$',EUR:'€',GBP:'£',INR:'₹'};
+// Secondary currency: if txn currency is a foreign currency, secondary is INR.
+// If txn currency is INR, secondary is USD (using the USD rate from settings) so both currencies always show.
+function secInfo(doc){
+  if(doc.currency==='INR'){
+    const r=CO().rateUSD||1;
+    return {code:'USD', sym:'$', conv:(amt)=> amt / r};
+  }
+  return {code:'INR', sym:'₹', conv:(amt)=> amt * (doc.rateUsed||1)};
+}
+
+function goPreview(){
+  if(!document.getElementById('d_party').value){ toast('Party select kijiye'); switchTab('doc'); return; }
+  if(!itemRows.length){ toast('Kam se kam ek item add kijiye'); switchTab('doc'); return; }
+  const doc=collectDoc();
+  window._pendingDoc=doc;
+  document.getElementById('previewSummary').innerHTML =
+    '<span class="pill '+pillClass(doc.type)+'">'+DOC_TYPES[doc.type].short+'</span> &nbsp; '+esc(doc.invoiceNo)+' &nbsp;·&nbsp; '+esc(doc.party.name)+' &nbsp;·&nbsp; '+doc.date;
+  document.getElementById('previewWrap').innerHTML = renderDocHtml(doc);
+  switchTab('preview');
+}
+function pillClass(t){ return t==='tax'?'tax':t==='proforma'?'proforma':t==='packing'?'packing':'quote'; }
+
+function renderDocHtml(doc){
+  const dt=DOC_TYPES[doc.type];
+  const totals=calcTotals(doc);
+  const sym=CUR_SYMBOL[doc.currency];
+  const sec=secInfo(doc);
+  const c=CO();
+  const watermark = c.watermarkOn && c.watermarkText ? '<div class="doc-watermark"><span>'+esc(c.watermarkText)+'</span></div>' : '';
+  const logoHtml = c.logo ? '<img class="co-logo" style="height:'+(c.logoSize||70)+'px;" src="'+c.logo+'">' : '';
+
+  let itemsRows='';
+  doc.items.forEach((r,i)=>{
+    const amt=(parseFloat(r.qty)||0)*(parseFloat(r.rate)||0);
+    itemsRows += '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td>'+esc(r.hsn)+(r.cas?'<br><span style="color:#666;">CAS: '+esc(r.cas)+'</span>':'')+'</td>'+
+      '<td>'+esc(r.desc)+(r.batch?'<br><span style="color:#666;">Batch: '+esc(r.batch)+'</span>':'')+(r.pkg?'<br><span style="color:#666;">'+esc(r.pkg)+'</span>':'')+'</td>'+
+      '<td class="right">'+esc(r.qty)+' '+esc(r.unit)+'</td>'+
+      '<td class="right">'+sym+fmtNum(r.rate)+'</td>'+
+      (doc.type==='tax' ? '<td class="right">'+ (r.gst||0) +'%</td>' : '') +
+      '<td class="right">'+sym+fmtNum(amt)+'</td>'+
+      '<td class="right" style="color:#666;">'+sec.sym+fmtNum(sec.conv(amt))+'</td>'+
+    '</tr>';
+  });
+
+  const headerBlock =
+    '<div class="doc-page-num">'+ (doc.copyType && doc.type==='tax' ? '<span class="copy-tag">'+esc(doc.copyType)+'</span>' : '') +'</div>'+
+    '<div class="doc-head">'+ logoHtml +
+      '<div class="co-info"><div class="co-name">'+esc(c.name||'YOUR COMPANY NAME')+'</div>'+
+      '<div class="co-addr">'+esc(c.address)+(c.phone?'\nPh: '+esc(c.phone):'')+(c.email?'  Email: '+esc(c.email):'')+
+      (c.gstin?'\nGSTIN: '+esc(c.gstin):'')+(c.iec?'  IEC: '+esc(c.iec):'')+'</div></div>'+
+    '</div>'+
+    '<div class="doc-title-band" style="background:'+dt.color+';">'+dt.band+'</div>';
+
+  const partyBlock = (doc.shipSame || !doc.shipTo) ?
+    '<table class="doc-tbl"><tr>'+
+      '<td style="width:52%;"><span class="lbl">Buyer / Consignee</span><span class="val">'+esc(doc.party.name)+'</span><br><span style="font-size:9px;">'+esc(doc.party.address)+'</span>'+(doc.party.email?'<br><span style="font-size:9px;">Email: '+esc(doc.party.email)+'</span>':'')+(doc.buyerOther?'<br><span class="lbl">Buyer</span> '+esc(doc.buyerOther):'')+'</td>'+
+      '<td style="width:24%;"><span class="lbl">Doc No. &amp; Date</span><span class="val">'+esc(doc.invoiceNo)+'</span><br>'+fmtDate(doc.date)+
+        (doc.poNo?'<br><span class="lbl">Buyer PO</span> '+esc(doc.poNo)+(doc.poDate?' / '+fmtDate(doc.poDate):''):'')+
+        (doc.validTill?'<br><span class="lbl">Valid Till</span> '+fmtDate(doc.validTill):'')+'</td>'+
+      '<td style="width:24%;"><span class="lbl">Country of Origin</span><span class="val">'+esc(doc.countryOrigin)+'</span><br>'+
+        '<span class="lbl">Country of Destination</span><span class="val">'+esc(doc.countryDest)+'</span></td>'+
+    '</tr></table>'
+    :
+    '<table class="doc-tbl"><tr>'+
+      '<td style="width:33%;"><span class="lbl">Buyer (Bill To)</span><span class="val">'+esc(doc.party.name)+'</span><br><span style="font-size:9px;">'+esc(doc.party.address)+'</span>'+(doc.party.email?'<br><span style="font-size:9px;">Email: '+esc(doc.party.email)+'</span>':'')+'</td>'+
+      '<td style="width:33%;"><span class="lbl">Consignee (Ship To)</span><span class="val">'+esc(doc.shipTo.name)+'</span><br><span style="font-size:9px;">'+esc(doc.shipTo.address)+'</span>'+(doc.shipTo.email?'<br><span style="font-size:9px;">Contact: '+esc(doc.shipTo.email)+'</span>':'')+'</td>'+
+      '<td style="width:17%;"><span class="lbl">Doc No. &amp; Date</span><span class="val">'+esc(doc.invoiceNo)+'</span><br>'+fmtDate(doc.date)+
+        (doc.poNo?'<br><span class="lbl">Buyer PO</span> '+esc(doc.poNo):'')+'</td>'+
+      '<td style="width:17%;"><span class="lbl">Origin</span><span class="val">'+esc(doc.countryOrigin)+'</span><br>'+
+        '<span class="lbl">Destination</span><span class="val">'+esc(doc.countryDest)+'</span></td>'+
+    '</tr></table>';
+
+  const shipRow1Label1 = doc.type==='quote' ? 'Method of Dispatch' : 'Pre-carriage By';
+  const shipRow1Val1 = doc.type==='quote' ? (doc.dispatchMethod||doc.vessel) : doc.precarriage;
+  const shipRow1Label2 = doc.type==='quote' ? 'Type of Shipment' : 'Place of Receipt';
+  const shipRow1Val2 = doc.type==='quote' ? doc.shipType : doc.receipt;
+  const shipRow1Label3 = 'Terms of Delivery / Payment';
+  const shipRow1Val3 = doc.termsDelivery || (doc.incoterm);
+
+  const shipBlock =
+    '<table class="doc-tbl"><tr>'+
+      '<td style="width:33%;"><span class="lbl">'+shipRow1Label1+'</span><span class="val">'+esc(shipRow1Val1)+'</span></td>'+
+      '<td style="width:34%;"><span class="lbl">'+shipRow1Label2+'</span><span class="val">'+esc(shipRow1Val2)+'</span></td>'+
+      '<td style="width:33%;"><span class="lbl">'+shipRow1Label3+'</span><span class="val">'+esc(shipRow1Val3)+'</span></td>'+
+    '</tr><tr>'+
+      '<td><span class="lbl">'+(doc.type==='quote'?'Port of Lading':'Vessel / Flight No.')+'</span><span class="val">'+esc(doc.type==='quote'?doc.loading:doc.vessel)+'</span></td>'+
+      '<td><span class="lbl">'+(doc.type==='quote'?'Port of Delivery':'Port of Loading')+'</span><span class="val">'+esc(doc.type==='quote'?doc.discharge:doc.loading)+'</span></td>'+
+      '<td><span class="lbl">Incoterm / Currency</span><span class="val">'+esc(doc.incoterm)+' / '+esc(doc.currency)+'</span></td>'+
+    '</tr>'+
+    (doc.type!=='quote' ? '<tr>'+
+      '<td><span class="lbl">Port of Discharge</span><span class="val">'+esc(doc.discharge)+'</span></td>'+
+      '<td><span class="lbl">Final Destination</span><span class="val">'+esc(doc.finaldest)+'</span></td>'+
+      '<td><span class="lbl">Marks &amp; Nos. / Container</span><span class="val">'+esc(doc.marks)+' '+esc(doc.container)+(doc.seal?(' / Seal '+esc(doc.seal)):'')+'</span></td>'+
+    '</tr>' : '') +
+    '</table>';
+
+  const itemsHeadExtra = doc.type==='tax' ? '<th>GST%</th>' : '';
+  const itemsBlock =
+    '<table class="doc-tbl items-doc"><thead><tr>'+
+      '<th style="width:4%;">Sr</th><th style="width:14%;">HSN / CAS</th><th>Description of Goods</th>'+
+      '<th style="width:10%;">Qty</th><th style="width:9%;">Rate</th>'+ itemsHeadExtra +
+      '<th style="width:10%;">Amount ('+doc.currency+')</th><th style="width:11%;">'+sec.code+'</th>'+
+    '</tr></thead><tbody>'+ itemsRows +
+    '<tr class="doc-total-row"><td colspan="'+(doc.type==='tax'?6:5)+'" class="right">TOTAL</td>'+
+      '<td class="right">'+sym+fmtNum(totals.total)+'</td><td class="right">'+sec.sym+fmtNum(sec.conv(totals.total))+'</td></tr>'+
+    (doc.type==='tax' && totals.gst>0 ? '<tr class="doc-total-row"><td colspan="6" class="right">GST</td><td class="right">'+sym+fmtNum(totals.gst)+'</td><td class="right">'+sec.sym+fmtNum(sec.conv(totals.gst))+'</td></tr>' : '')+
+    '<tr class="doc-total-row"><td colspan="'+(doc.type==='tax'?6:5)+'" class="right">GRAND TOTAL</td>'+
+      '<td class="right">'+sym+fmtNum(totals.grand)+'</td><td class="right">'+sec.sym+fmtNum(totals.inr)+'</td></tr>'+
+    '</tbody></table>';
+
+  const weightsBlock = (doc.type==='tax'||doc.type==='packing') ?
+    '<table class="doc-tbl"><tr>'+
+      '<td><span class="lbl">Net Weight</span><span class="val">'+esc(doc.netWeight)+'</span></td>'+
+      '<td><span class="lbl">Gross Weight</span><span class="val">'+esc(doc.grossWeight)+'</span></td>'+
+      '<td><span class="lbl">Transhipment</span><span class="val">'+esc(doc.transhipment)+'</span></td>'+
+      '<td><span class="lbl">Delivery</span><span class="val">'+esc(doc.deliveryTerms)+'</span></td>'+
+    '</tr></table>' : '';
+
+  const ewbBlock = doc.ewbOn ?
+    '<div class="section-title-print">E-way Bill Details</div>'+
+    '<table class="doc-tbl"><tr>'+
+      '<td><span class="lbl">E-way Bill No.</span><span class="val">'+esc(doc.ewbNo)+'</span></td>'+
+      '<td><span class="lbl">Date / Valid Upto</span><span class="val">'+fmtDate(doc.ewbDate)+' / '+fmtDate(doc.ewbValid)+'</span></td>'+
+      '<td><span class="lbl">Vehicle No.</span><span class="val">'+esc(doc.ewbVehicle)+'</span></td>'+
+      '<td><span class="lbl">Mode / Distance</span><span class="val">'+esc(doc.ewbMode)+' / '+esc(doc.ewbDistance)+' km</span></td>'+
+    '</tr><tr>'+
+      '<td colspan="2"><span class="lbl">Transporter</span><span class="val">'+esc(doc.ewbTransporter)+'</span></td>'+
+      '<td><span class="lbl">Transporter GSTIN</span><span class="val">'+esc(doc.ewbTransporterId)+'</span></td>'+
+      '<td><span class="lbl">Dispatch State</span><span class="val">'+esc(doc.ewbDispatchState)+'</span></td>'+
+    '</tr></table>' : '';
+
+  const wordsLine = '<div style="margin:6px 0;font-size:9.6px;"><span class="lbl" style="display:inline;">Amount in Words:</span> '+esc(amountInWords(totals.grand, doc.currency))+'</div>';
+  const inrWordsLine = '<div style="margin:2px 0 6px;font-size:9.3px;color:#555;"><span class="lbl" style="display:inline;">'+sec.code+' Equivalent in Words:</span> '+esc(amountInWords(totals.inr,sec.code))+' (@ '+(doc.currency==='INR'? ('$1 = ₹'+(CO().rateUSD||1)) : (sym+'1 = ₹'+doc.rateUsed))+')</div>';
+
+  const lutLine = (doc.type==='tax' && doc.lut) ? '<div style="font-size:9px;font-weight:700;margin:4px 0;">SUPPLY MEANT FOR EXPORT UNDER LUT WITHOUT PAYMENT OF IGST.</div>' : '';
+  const plasticLine = (doc.plasticKg && (doc.type==='tax'||doc.type==='packing')) ? '<div class="doc-footer-note">The total weight of non-reusable plastic applied in packaging is '+esc(doc.plasticKg)+' kgs for this shipment.</div>' : '';
+
+  const bankBlock = (doc.type==='proforma') ?
+    '<div class="section-title-print">Bank Details</div>'+
+    '<div style="font-size:9.3px;line-height:1.6;">'+esc(c.bankName)+'<br>A/C No: '+esc(c.bankAcc)+' &nbsp; IFSC: '+esc(c.ifsc)+'<br>SWIFT: '+esc(c.swift)+'<br>'+esc(c.bankAddr)+'</div>' : '';
+
+  const termsBlock = '<div class="section-title-print">Terms &amp; Conditions</div><div class="doc-terms">'+esc(doc.terms)+'</div>';
+
+  const signBlock =
+    '<div class="doc-signblock">'+
+      '<div class="sb">Prepared By</div>'+
+      '<div class="sb">Checked By</div>'+
+      '<div class="sb">Authorised Signatory<br>'+esc(c.name||'')+'</div>'+
+    '</div>';
+
+  const page =
+    '<div class="doc-page" style="--docColor:'+dt.color+';--docSoft:'+dt.soft+';">'+ watermark +
+    '<div class="doc-content">'+
+      '<div class="doc-topbar" style="background:'+dt.color+';"></div>'+
+      headerBlock + partyBlock + shipBlock + itemsBlock + weightsBlock + ewbBlock + wordsLine + inrWordsLine + lutLine + plasticLine + bankBlock + termsBlock +
+      '<div class="doc-footer-note">We declare that this document shows the actual particulars of the goods described and that all particulars are true and correct.</div>'+
+      signBlock +
+    '</div></div>';
+  return page;
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+}
+
+/* ---- Amount in words ---- */
+const ONES=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const TENS=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function twoDigits(n){ if(n<20) return ONES[n]; return TENS[Math.floor(n/10)]+(n%10?' '+ONES[n%10]:''); }
+function threeDigits(n){
+  let s='';
+  if(n>=100){ s+=ONES[Math.floor(n/100)]+' Hundred'; n=n%100; if(n) s+=' '; }
+  if(n) s+=twoDigits(n);
+  return s;
+}
+function indianWords(n){
+  if(n===0) return 'Zero';
+  let s='';
+  const crore=Math.floor(n/10000000); n%=10000000;
+  const lakh=Math.floor(n/100000); n%=100000;
+  const thousand=Math.floor(n/1000); n%=1000;
+  const rest=n;
+  if(crore) s+=threeDigits(crore)+' Crore ';
+  if(lakh) s+=threeDigits(lakh)+' Lakh ';
+  if(thousand) s+=threeDigits(thousand)+' Thousand ';
+  if(rest) s+=threeDigits(rest);
+  return s.trim();
+}
+function internationalWords(n){
+  if(n===0) return 'Zero';
+  let s='';
+  const million=Math.floor(n/1000000); n%=1000000;
+  const thousand=Math.floor(n/1000); n%=1000;
+  const rest=n;
+  if(million) s+=threeDigits(million)+' Million ';
+  if(thousand) s+=threeDigits(thousand)+' Thousand ';
+  if(rest) s+=threeDigits(rest);
+  return s.trim();
+}
+function amountInWords(amount, currency){
+  const whole=Math.floor(amount);
+  const paise=Math.round((amount-whole)*100);
+  const curName = currency==='INR'?'Rupees':currency==='USD'?'US Dollars':currency==='EUR'?'Euros':currency==='GBP'?'Pounds':currency;
+  const subName = currency==='INR'?'Paise':'Cents';
+  const words = currency==='INR' ? indianWords(whole) : internationalWords(whole);
+  let out = words+' '+curName;
+  if(paise>0){ out += ' and '+ (currency==='INR'?indianWords(paise):internationalWords(paise)) +' '+subName; }
+  return out+' Only';
+}
+
+/* ================= SAVE TO REPORT ================= */
+function saveToReport(){
+  if(!window._pendingDoc){ toast('Pehle preview generate kijiye'); return; }
+  const doc=window._pendingDoc;
+  const totals=calcTotals(doc);
+  if(window._editingId){
+    const idx=INVOICES.findIndex(x=>x.id===window._editingId);
+    if(idx>=0){
+      INVOICES[idx]=Object.assign(INVOICES[idx],{ type:doc.type, invoiceNo:doc.invoiceNo, date:doc.date,
+        partyName:doc.party.name, currency:doc.currency, amount:totals.grand, amountINR:totals.inr, secCode:totals.secCode, doc:doc });
+      persistInv();
+      const lidx=LEDGER.findIndex(x=>x.invoiceId===window._editingId);
+      if(lidx>=0){
+        LEDGER[lidx]=Object.assign(LEDGER[lidx],{ date:doc.date, partyId:doc.party.id, partyName:doc.party.name,
+          currency:doc.currency, amount:totals.grand, amountINR:totals.inr, note:'Invoice '+doc.invoiceNo });
+        persistLedger();
+      } else if(doc.type==='tax' && doc.party && doc.party.id){
+        LEDGER.unshift({ id:uid(), date:doc.date, partyId:doc.party.id, partyName:doc.party.name, type:'Sale',
+          currency:doc.currency, amount:totals.grand, amountINR:totals.inr, note:'Invoice '+doc.invoiceNo,
+          invoiceId:window._editingId, savedAt:new Date().toISOString() });
+        persistLedger();
+      }
+      toast('Updated — '+doc.invoiceNo);
+    }
+    window._editingId=null;
+    resetDocForm(true); onTypeChange();
+    return;
+  }
+  const rec={
+    id: uid(), type: doc.type, invoiceNo: doc.invoiceNo, date: doc.date,
+    partyName: doc.party.name, currency: doc.currency, amount: totals.grand, amountINR: totals.inr, secCode: totals.secCode,
+    savedAt: new Date().toISOString(), doc: doc
+  };
+  INVOICES.unshift(rec);
+  persistInv();
+  if(doc.type==='tax' && doc.party && doc.party.id){
+    LEDGER.unshift({ id: uid(), date: doc.date, partyId: doc.party.id, partyName: doc.party.name,
+      type:'Sale', currency: doc.currency, amount: totals.grand, amountINR: totals.inr,
+      note:'Invoice '+doc.invoiceNo, invoiceId: rec.id, savedAt:new Date().toISOString() });
+    persistLedger();
+  }
+  M.counters[doc.type] = (M.counters[doc.type]||1) + 1;
+  persistM();
+  toast('Saved to report — '+doc.invoiceNo);
+  resetDocForm(true);
+  onTypeChange();
+}
+
+/* ================= REPORT TAB ================= */
+function trueINR(r){ return r.currency==='INR' ? (r.amount||0) : (r.amountINR||0); }
+function renderReport(){
+  const mode=document.getElementById('reportMode').value;
+  document.getElementById('docsReportCard').style.display = mode==='docs'?'':'none';
+  document.getElementById('itemReportCard').style.display = mode==='item'?'':'none';
+  document.getElementById('balanceReportCard').style.display = mode==='balance'?'':'none';
+
+  const strip=document.getElementById('statStrip'); strip.innerHTML='';
+  const counts={tax:0,proforma:0,packing:0,quote:0};
+  INVOICES.forEach(r=>counts[r.type]=(counts[r.type]||0)+1);
+  Object.keys(DOC_TYPES).forEach(k=>{
+    strip.innerHTML += '<div class="stat"><div class="n" style="color:'+DOC_TYPES[k].color+';">'+counts[k]+'</div><div class="l">'+DOC_TYPES[k].short+'</div></div>';
+  });
+  strip.innerHTML += '<div class="stat"><div class="n">'+INVOICES.length+'</div><div class="l">Total Documents</div></div>';
+
+  if(mode==='item'){ renderItemReport(); return; }
+  if(mode==='balance'){ renderBalanceReport(); return; }
+
+  const filterType=document.getElementById('filterType').value;
+  const q=document.getElementById('searchBox').value.trim().toLowerCase();
+  const tb=document.querySelector('#reportTable tbody'); tb.innerHTML='';
+  const rows = INVOICES.filter(r=> (!filterType||r.type===filterType) && (!q || (r.partyName||'').toLowerCase().includes(q) || (r.invoiceNo||'').toLowerCase().includes(q)) );
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Koi document nahi mila</td></tr>'; return; }
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td><span class="pill '+pillClass(r.type)+'">'+DOC_TYPES[r.type].short+'</span></td>'+
+      '<td>'+esc(r.invoiceNo)+'</td><td>'+fmtDate(r.date)+'</td><td>'+esc(r.partyName)+'</td>'+
+      '<td>'+CUR_SYMBOL[r.currency]+fmtNum(r.amount)+' <span class="muted">('+(r.secCode||'INR')+' '+fmtNum(r.amountINR)+')</span></td>'+
+      '<td><button class="icon-btn" title="Edit" onclick="editInvoice(\''+r.id+'\')">✎</button><button class="icon-btn" title="Reprint" onclick="reprint(\''+r.id+'\')">🖨</button><button class="icon-btn del" title="Delete" onclick="deleteReportRow(\''+r.id+'\')">🗑</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function itemAgg(){
+  const agg={};
+  INVOICES.forEach(inv=>{
+    (inv.doc && inv.doc.items ? inv.doc.items : []).forEach(it=>{
+      const key=(it.desc||'Unnamed')+'|'+(it.hsn||'');
+      if(!agg[key]) agg[key]={desc:it.desc||'Unnamed', hsn:it.hsn||'', qty:0, unit:it.unit||'', invCount:0, inr:0};
+      const amt=(parseFloat(it.qty)||0)*(parseFloat(it.rate)||0);
+      const sec=secInfo(inv.doc);
+      agg[key].qty += parseFloat(it.qty)||0;
+      agg[key].invCount += 1;
+      agg[key].inr += (inv.doc.currency==='INR'? amt : sec.conv(amt));
+    });
+  });
+  return Object.values(agg);
+}
+function renderItemReport(){
+  const tb=document.querySelector('#itemReportTable tbody'); tb.innerHTML='';
+  const rows=itemAgg();
+  const sel=document.getElementById('itemDrillSelect'); const curSel=sel.value;
+  sel.innerHTML='<option value="">— Single item ki detail dekhiye —</option>'+rows.map(r=>'<option value="'+esc(r.desc)+'">'+esc(r.desc)+'</option>').join('');
+  sel.value=curSel;
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Abhi koi saved document nahi hai</td></tr>'; renderItemDrill(); return; }
+  rows.sort((a,b)=>b.inr-a.inr).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(r.desc)+'</td><td>'+esc(r.hsn)+'</td><td>'+fmtNum(r.qty)+' '+esc(r.unit)+'</td><td>'+r.invCount+'</td><td>₹'+fmtNum(r.inr)+'</td>';
+    tb.appendChild(tr);
+  });
+  renderItemDrill();
+}
+function renderItemDrill(){
+  const sel=document.getElementById('itemDrillSelect').value;
+  const wrap=document.getElementById('itemDrillWrap');
+  if(!sel){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  let rowsHtml='';
+  INVOICES.forEach(inv=>{
+    (inv.doc && inv.doc.items ? inv.doc.items : []).forEach(it=>{
+      if((it.desc||'Unnamed')===sel){
+        const amt=(parseFloat(it.qty)||0)*(parseFloat(it.rate)||0);
+        rowsHtml += '<tr><td>'+fmtDate(inv.date)+'</td><td>'+esc(inv.invoiceNo)+'</td><td>'+esc(inv.partyName)+'</td>'+
+          '<td>'+esc(it.qty)+' '+esc(it.unit)+'</td><td>'+esc(it.rate)+'</td><td>'+fmtNum(amt)+'</td></tr>';
+      }
+    });
+  });
+  document.querySelector('#itemDrillTable tbody').innerHTML = rowsHtml || '<tr><td colspan="6" class="empty">Koi entry nahi mili</td></tr>';
+}
+function partyBalances(){
+  const map={};
+  INVOICES.filter(r=>r.type==='tax').forEach(r=>{
+    const key=r.partyName||'—';
+    if(!map[key]) map[key]={party:key,sales:0,received:0};
+    map[key].sales += trueINR(r);
+  });
+  LEDGER.forEach(r=>{
+    const key=r.partyName||'—';
+    if(!map[key]) map[key]={party:key,sales:0,received:0};
+    if(r.type==='Sale') map[key].sales += trueINR(r);
+    else map[key].received += trueINR(r);
+  });
+  return Object.values(map);
+}
+function renderBalanceReport(){
+  const tb=document.querySelector('#balanceReportTable tbody'); tb.innerHTML='';
+  const rows=partyBalances();
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="empty">Abhi koi Tax Invoice ya ledger entry nahi hai</td></tr>'; return; }
+  rows.forEach(r=>{
+    const due=r.sales-r.received;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(r.party)+'</td><td>₹'+fmtNum(r.sales)+'</td><td>₹'+fmtNum(r.received)+'</td>'+
+      '<td class="ledger-balance '+(due>0.5?'due':'clear')+'">₹'+fmtNum(due)+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function exportItemReportExcel(){
+  if(!window.XLSX){ toast('Excel library load nahi hui'); return; }
+  const rows=[['Product','HSN','Total Qty','Invoices','Total INR']];
+  itemAgg().forEach(r=>rows.push([r.desc,r.hsn,r.qty,r.invCount,Number(r.inr.toFixed(2))]));
+  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Item Report');
+  offerFile('item-wise-report.xlsx', new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
+}
+function exportBalanceReportExcel(){
+  if(!window.XLSX){ toast('Excel library load nahi hui'); return; }
+  const rows=[['Party','Total Sales INR','Total Received INR','Balance Due INR']];
+  partyBalances().forEach(r=>rows.push([r.party,Number(r.sales.toFixed(2)),Number(r.received.toFixed(2)),Number((r.sales-r.received).toFixed(2))]));
+  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Party Balance');
+  offerFile('party-balance-report.xlsx', new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
+}
+function editInvoice(id){
+  const rec=INVOICES.find(x=>x.id===id); if(!rec) return;
+  const doc=rec.doc;
+  currentType=doc.type;
+  switchTab('doc');
+  onTypeChange();
+  window._editingId=rec.id;
+  document.getElementById('d_invoiceNo').value=doc.invoiceNo;
+  document.getElementById('d_date').value=doc.date;
+  if(document.getElementById('d_copyType')) document.getElementById('d_copyType').value=doc.copyType||'ORIGINAL FOR BUYER';
+  document.getElementById('d_party').value=(doc.party&&doc.party.id)||'';
+  document.getElementById('d_buyerOther').value=doc.buyerOther||'';
+  document.getElementById('d_poNo').value=doc.poNo||'';
+  document.getElementById('d_poDate').value=doc.poDate||'';
+  document.getElementById('d_countryOrigin').value=doc.countryOrigin||'INDIA';
+  document.getElementById('d_countryDest').value=doc.countryDest||'';
+  document.getElementById('d_shipSame').checked = doc.shipSame!==false;
+  toggleShipTo();
+  document.getElementById('d_shipName').value=(doc.shipTo&&doc.shipTo.name)||'';
+  document.getElementById('d_shipAddress').value=(doc.shipTo&&doc.shipTo.address)||'';
+  document.getElementById('d_shipCountry').value=(doc.shipTo&&doc.shipTo.country)||'';
+  document.getElementById('d_shipContact').value=(doc.shipTo&&doc.shipTo.email)||'';
+  document.getElementById('d_shipState').value=(doc.shipTo&&doc.shipTo.state)||'';
+  document.getElementById('d_precarriage').value=doc.precarriage||'';
+  document.getElementById('d_receipt').value=doc.receipt||'';
+  document.getElementById('d_vessel').value=doc.vessel||'';
+  document.getElementById('d_loading').value=doc.loading||'';
+  document.getElementById('d_discharge').value=doc.discharge||'';
+  document.getElementById('d_finaldest').value=doc.finaldest||'';
+  document.getElementById('d_incoterm').value=doc.incoterm||'FOB';
+  document.getElementById('d_termsDelivery').value=doc.termsDelivery||'';
+  document.getElementById('d_container').value=doc.container||'';
+  document.getElementById('d_seal').value=doc.seal||'';
+  document.getElementById('d_marks').value=doc.marks||'';
+  document.getElementById('d_shipType').value=doc.shipType||'';
+  document.getElementById('d_dispatchMethod').value=doc.dispatchMethod||'';
+  document.getElementById('d_validTill').value=doc.validTill||'';
+  document.getElementById('d_currency').value=doc.currency||'USD';
+  document.getElementById('d_rateUsed').value=doc.rateUsed||currentRate();
+  document.getElementById('d_lut').checked=!!doc.lut;
+  document.getElementById('d_netWeight').value=doc.netWeight||'';
+  document.getElementById('d_grossWeight').value=doc.grossWeight||'';
+  document.getElementById('d_plasticKg').value=doc.plasticKg||'';
+  document.getElementById('d_deliveryTerms').value=doc.deliveryTerms||'';
+  document.getElementById('d_transhipment').value=doc.transhipment||'Prohibited';
+  document.getElementById('d_ewbOn').checked=!!doc.ewbOn; toggleEwb();
+  document.getElementById('d_ewbNo').value=doc.ewbNo||'';
+  document.getElementById('d_ewbDate').value=doc.ewbDate||'';
+  document.getElementById('d_ewbValid').value=doc.ewbValid||'';
+  document.getElementById('d_ewbVehicle').value=doc.ewbVehicle||'';
+  document.getElementById('d_ewbMode').value=doc.ewbMode||'Road';
+  document.getElementById('d_ewbDistance').value=doc.ewbDistance||'';
+  document.getElementById('d_ewbTransporter').value=doc.ewbTransporter||'';
+  document.getElementById('d_ewbTransporterId').value=doc.ewbTransporterId||'';
+  document.getElementById('d_ewbDispatchState').value=doc.ewbDispatchState||'';
+  document.getElementById('d_terms').value=doc.terms||'';
+  document.getElementById('d_terms').dataset.userEdited='1';
+  itemRows = JSON.parse(JSON.stringify(doc.items||[])).map(r=>{ r._rid=uid(); return r; });
+  renderItemsTable();
+  toast('Editing '+doc.invoiceNo+' — badlav karke "Generate Preview" phir "Save to Report" dabayen');
+}
+function reprint(id){
+  const r=INVOICES.find(x=>x.id===id); if(!r) return;
+  window._pendingDoc=r.doc;
+  document.getElementById('previewSummary').innerHTML =
+    '<span class="pill '+pillClass(r.doc.type)+'">'+DOC_TYPES[r.doc.type].short+'</span> &nbsp; '+esc(r.doc.invoiceNo)+' &nbsp;·&nbsp; '+esc(r.doc.party.name)+' &nbsp;·&nbsp; '+r.doc.date;
+  document.getElementById('previewWrap').innerHTML = renderDocHtml(r.doc);
+  switchTab('preview');
+}
+function deleteReportRow(id){
+  customConfirm('Is document ko report se delete karna hai?', function(){
+    INVOICES=INVOICES.filter(x=>x.id!==id); persistInv(); renderReport();
+  });
+}
+
+/* ================= LEDGER TAB ================= */
+function renderLedgerPartyOptions(){
+  const opt='<option value="">— select party —</option>'+M.parties.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+  const s1=document.getElementById('l_party'); const c1=s1.value; s1.innerHTML=opt; s1.value=c1;
+  const s2=document.getElementById('l_filterParty'); const c2=s2.value;
+  s2.innerHTML='<option value="">All Parties</option>'+M.parties.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+  s2.value=c2;
+}
+function addLedgerEntry(){
+  const partyId=document.getElementById('l_party').value;
+  const p=M.parties.find(x=>x.id===partyId);
+  if(!p){ toast('Party select kijiye'); return; }
+  const amount=parseFloat(document.getElementById('l_amount').value)||0;
+  if(amount<=0){ toast('Amount daaliye'); return; }
+  const currency=document.getElementById('l_currency').value;
+  const rate = currency==='USD'?CO().rateUSD:currency==='EUR'?CO().rateEUR:currency==='GBP'?CO().rateGBP:1;
+  const amountINR = currency==='INR'? amount : amount*rate;
+  const entry={ date:document.getElementById('l_date').value||new Date().toISOString().slice(0,10),
+    partyId, partyName:p.name, type:document.getElementById('l_type').value, currency, amount, amountINR,
+    note:document.getElementById('l_note').value };
+  if(window._editingLedgerId){
+    const idx=LEDGER.findIndex(x=>x.id===window._editingLedgerId);
+    if(idx>=0) LEDGER[idx]=Object.assign(LEDGER[idx], entry);
+    window._editingLedgerId=null;
+    toast('Ledger entry updated');
+  } else {
+    LEDGER.unshift(Object.assign({id:uid(), savedAt:new Date().toISOString()}, entry));
+    toast('Ledger entry added');
+  }
+  persistLedger();
+  document.getElementById('l_party').value='';
+  document.getElementById('l_date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('l_type').selectedIndex=0;
+  document.getElementById('l_currency').selectedIndex=0;
+  ['l_amount','l_note'].forEach(i=>document.getElementById(i).value='');
+  renderLedger();
+}
+function editLedgerEntry(id){
+  const r=LEDGER.find(x=>x.id===id); if(!r) return;
+  document.getElementById('l_party').value=r.partyId;
+  document.getElementById('l_date').value=r.date;
+  document.getElementById('l_type').value=r.type;
+  document.getElementById('l_currency').value=r.currency;
+  document.getElementById('l_amount').value=r.amount;
+  document.getElementById('l_note').value=r.note;
+  window._editingLedgerId=id;
+  toast('Editing entry — badal kar "+ Add Entry" dabayen (update ho jayega)');
+}
+function deleteLedgerEntry(id){
+  customConfirm('Yeh ledger entry delete karni hai?', function(){
+    LEDGER=LEDGER.filter(x=>x.id!==id); persistLedger(); renderLedger();
+  });
+}
+function renderLedger(){
+  renderLedgerPartyOptions();
+  const filterParty=document.getElementById('l_filterParty').value;
+  let rows = filterParty ? LEDGER.filter(r=>r.partyId===filterParty) : LEDGER;
+  rows = rows.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') || (a.savedAt||'').localeCompare(b.savedAt||''));
+  const tb=document.querySelector('#ledgerTable tbody'); tb.innerHTML='';
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Koi ledger entry nahi hai</td></tr>'; }
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    const isSale=r.type==='Sale';
+    tr.innerHTML='<td>'+fmtDate(r.date)+'</td><td>'+esc(r.partyName)+'</td>'+
+      '<td><span class="pill" style="background:'+(isSale?'var(--tax-soft)':'var(--packing-soft)')+';color:'+(isSale?'var(--tax)':'var(--packing)')+';">'+esc(r.type)+'</span></td>'+
+      '<td>'+(CUR_SYMBOL[r.currency]||'')+fmtNum(r.amount)+'</td><td>₹'+fmtNum(r.amountINR)+'</td>'+
+      '<td class="muted">'+esc(r.note)+'</td>'+
+      '<td>'+(isSale?'':'<button class="icon-btn" onclick="editLedgerEntry(\''+r.id+'\')">✎</button><button class="icon-btn del" onclick="deleteLedgerEntry(\''+r.id+'\')">🗑</button>')+'</td>';
+    tb.appendChild(tr);
+  });
+  const box=document.getElementById('ledgerBalanceBox');
+  if(filterParty){
+    let sales=0, recv=0;
+    rows.forEach(r=>{ if(r.type==='Sale') sales+=trueINR(r); else recv+=trueINR(r); });
+    const due=sales-recv;
+    box.innerHTML='Total Sales: ₹'+fmtNum(sales)+' &nbsp;·&nbsp; Total Received: ₹'+fmtNum(recv)+' &nbsp;·&nbsp; <span class="ledger-balance '+(due>0.5?'due':'clear')+'">Balance Due: ₹'+fmtNum(due)+'</span>';
+  } else { box.innerHTML='Party select kijiye upar filter se — running balance yahan dikhega.'; }
+}
+function exportLedgerExcel(){
+  if(!window.XLSX){ toast('Excel library load nahi hui'); return; }
+  const rows=[['Date','Party','Type','Currency','Amount','INR Amount','Note']];
+  LEDGER.forEach(r=>rows.push([fmtDate(r.date),r.partyName,r.type,r.currency,r.amount,Number((r.amountINR||0).toFixed(2)),r.note]));
+  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Ledger');
+  offerFile('party-ledger.xlsx', new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
+}
+function printLedgerStatement(){
+  const filterParty=document.getElementById('l_filterParty').value;
+  let rows = filterParty ? LEDGER.filter(r=>r.partyId===filterParty) : LEDGER;
+  if(!rows.length){ toast('Koi ledger entry nahi hai'); return; }
+  rows = rows.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') || (a.savedAt||'').localeCompare(b.savedAt||''));
+  const partyName = filterParty ? (M.parties.find(p=>p.id===filterParty)||{}).name : 'All Parties';
+  let bal=0, sales=0, recv=0;
+  let rowsHtml='';
+  rows.forEach(r=>{
+    const inr=trueINR(r);
+    if(r.type==='Sale'){ bal+=inr; sales+=inr; } else { bal-=inr; recv+=inr; }
+    rowsHtml += '<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(r.partyName)+'</td><td>'+esc(r.type)+'</td>'+
+      '<td class="right">'+(CUR_SYMBOL[r.currency]||'')+fmtNum(r.amount)+'</td><td class="right">₹'+fmtNum(inr)+'</td>'+
+      '<td class="right">₹'+fmtNum(bal)+'</td><td>'+esc(r.note)+'</td></tr>';
+  });
+  const c=CO();
+  const html = '<div class="doc-page" style="--docColor:'+DOC_TYPES.tax.color+';--docSoft:'+DOC_TYPES.tax.soft+';"><div class="doc-content">'+
+    '<div class="doc-topbar" style="background:'+DOC_TYPES.tax.color+';"></div>'+
+    '<div class="doc-head"><div class="co-info"><div class="co-name">'+esc(c.name||'')+'</div><div class="co-addr">'+esc(c.address)+'</div></div></div>'+
+    '<div class="doc-title-band" style="background:'+DOC_TYPES.tax.color+';">PARTY LEDGER STATEMENT</div>'+
+    '<div style="margin-bottom:8px;font-size:11px;"><b>Party:</b> '+esc(partyName)+'</div>'+
+    '<table class="doc-tbl"><thead><tr><th>Date</th><th>Party</th><th>Type</th><th>Amount</th><th>₹ INR</th><th>Running Balance (₹)</th><th>Note</th></tr></thead>'+
+    '<tbody>'+rowsHtml+'</tbody>'+
+    '<tr class="doc-total-row"><td colspan="3" class="right">TOTAL</td><td></td><td class="right">Sales ₹'+fmtNum(sales)+' / Received ₹'+fmtNum(recv)+'</td><td class="right">₹'+fmtNum(bal)+'</td><td></td></tr>'+
+    '</table></div></div>';
+  const w=window.open('', '_blank');
+  if(!w){ toast('Popup block ho gaya — browser me popups allow kijiye'); return; }
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ledger Statement</title><style>'+PRINT_POPUP_CSS+'</style></head><body>'+html+'</body></html>');
+  w.document.close();
+  const doPrint=()=>{ try{ w.focus(); w.print(); }catch(e){} };
+  w.onload=doPrint; setTimeout(doPrint,500);
+}
+
+/* ================= BACKUP / RESTORE ================= */
+function exportBackup(){
+  const payload={ version:1, exportedAt:new Date().toISOString(), masters:M, invoices:INVOICES, ledger:LEDGER };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  offerFile('export-docs-backup-'+new Date().toISOString().slice(0,10)+'.json', blob);
+}
+document.getElementById('restoreInput').addEventListener('change', function(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.masters){ toast('Yeh valid backup file nahi hai'); return; }
+      customConfirm('Abhi ka saara data (parties, products, invoices, ledger) is backup se overwrite ho jayega. Continue?', function(){
+        lsSet(LS_MASTERS, data.masters); lsSet(LS_INVOICES, data.invoices||[]); lsSet(LS_LEDGER, data.ledger||[]);
+        toast('Backup restore ho gaya — reload ho raha hai');
+        setTimeout(()=>location.reload(), 900);
+      });
+    }catch(err){ toast('Backup file padhne me error aayi'); }
+  };
+  reader.readAsText(f);
+});
+
+/* ================= HIDDEN ADMIN / VALIDITY LOCK =================
+   Not shown as a tab or card. Reachable only via:
+   - clicking the "ED" logo 6× quickly (normal operation)
+   - clicking the lock-screen heading 6× quickly (when expired)
+   - the emergency recovery link (#resetvalidity) if a password is ever forgotten
+   NOTE (important, client-side limitation): since this is a single static HTML
+   file with no server, the expiry/password is stored in THIS BROWSER's storage
+   only. It is tied to the device/browser it was set on — NOT to any Claude
+   account or email login. Opening the same link in a different browser or a
+   fresh device always starts unlocked (no expiry) until Setup is done there too. */
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+let _brandClicks=0, _brandTimer=null;
+function brandMarkClick(){
+  _brandClicks++;
+  clearTimeout(_brandTimer);
+  _brandTimer=setTimeout(()=>{_brandClicks=0;},1500);
+  if(_brandClicks>=6){ _brandClicks=0; openAdminModal(); }
+}
+let _lockClicks=0, _lockTimer=null;
+function lockHeadingClick(){
+  _lockClicks++;
+  clearTimeout(_lockTimer);
+  _lockTimer=setTimeout(()=>{_lockClicks=0;},1500);
+  if(_lockClicks>=6){ _lockClicks=0; openAdminModal(); }
+}
+function openAdminModal(){
+  document.getElementById('adm_curpass').value='';
+  document.getElementById('adm_newpass').value='';
+  document.getElementById('adm_expiry').value=M.license.expiry||'';
+  renderAdmHint();
+  renderAdmUserList();
+  document.getElementById('adminModal').style.display='flex';
+}
+function closeAdminModal(){ document.getElementById('adminModal').style.display='none'; }
+function renderAdmHint(){
+  const h=document.getElementById('admStatusHint');
+  if(!M.license.expiry){ h.textContent='Abhi koi expiry set nahi hai — is browser me app hamesha chalega.'; }
+  else { h.textContent='Current expiry (is browser ke liye): '+fmtDate(M.license.expiry)+(M.license.passHash?' · password set hai':' · password set nahi hai'); }
+}
+async function saveAdminSettings(){
+  const cur=document.getElementById('adm_curpass').value;
+  const np=document.getElementById('adm_newpass').value;
+  const exp=document.getElementById('adm_expiry').value;
+  if(M.license.passHash){
+    const curHash = cur ? await sha256(cur) : '';
+    if(curHash !== M.license.passHash){ toast('Current password galat hai'); return; }
+  }
+  if(np){ M.license.passHash = await sha256(np); }
+  M.license.expiry = exp;
+  persistM();
+  toast('Validity settings saved (is browser ke liye)');
+  renderAdmHint();
+  checkLicense();
+}
+function checkLicense(){
+  const overlay=document.getElementById('lockOverlay');
+  if(!M.license.expiry){ overlay.style.display='none'; return; }
+  const today=new Date().toISOString().slice(0,10);
+  overlay.style.display = (today > M.license.expiry) ? 'flex' : 'none';
+}
+function checkEmergencyReset(){
+  if(location.hash==='#resetvalidity'){
+    M.license={expiry:'',passHash:''}; M.authUsers=[]; persistM();
+    history.replaceState(null,'',location.pathname+location.search);
+    toast('Validity aur Login lock reset ho gaya');
+  }
+}
+
+/* ---- App Login (ID/Password) gate ---- */
+function renderAdmUserList(){
+  const box=document.getElementById('adm_userList');
+  if(!M.authUsers.length){ box.innerHTML='<span class="muted">Koi login user nahi bana hai — link abhi bina login ke khulta hai</span>'; return; }
+  box.innerHTML = M.authUsers.map(u=>'<div class="row-flex" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:3px 0;"><span>'+esc(u.id)+'</span><button class="icon-btn del" onclick="removeLoginUser(\''+esc(u.id)+'\')">🗑</button></div>').join('');
+}
+async function addLoginUser(){
+  const id=document.getElementById('adm_newUserId').value.trim();
+  const pass=document.getElementById('adm_newUserPass').value;
+  if(!id || !pass){ toast('ID aur Password dono daaliye'); return; }
+  M.authUsers = M.authUsers.filter(u=>u.id!==id);
+  M.authUsers.push({ id, passHash: await sha256(pass) });
+  persistM();
+  document.getElementById('adm_newUserId').value=''; document.getElementById('adm_newUserPass').value='';
+  renderAdmUserList();
+  toast('Login user added');
+}
+function removeLoginUser(id){
+  M.authUsers = M.authUsers.filter(u=>u.id!==id);
+  persistM(); renderAdmUserList();
+  toast('User removed');
+}
+function checkLogin(){
+  if(M.authUsers && M.authUsers.length){
+    document.getElementById('loginGate').style.display='flex';
+  } else {
+    afterLogin();
+  }
+}
+function afterLogin(){
+  document.getElementById('loginGate').style.display='none';
+  checkLicense();
+  if(document.getElementById('lockOverlay').style.display!=='flex'){
+    document.getElementById('appShell').style.display='';
+  }
+}
+async function tryLogin(){
+  const id=document.getElementById('lg_id').value.trim();
+  const pass=document.getElementById('lg_pass').value;
+  const hash=await sha256(pass);
+  const match=(M.authUsers||[]).find(u=>u.id===id && u.passHash===hash);
+  if(match){ document.getElementById('lg_error').textContent=''; afterLogin(); toast('Login successful'); }
+  else { document.getElementById('lg_error').textContent='ID ya Password galat hai'; }
+}
+let _loginClicks=0, _loginTimer=null;
+function loginHeadingClick(){
+  _loginClicks++;
+  clearTimeout(_loginTimer);
+  _loginTimer=setTimeout(()=>{_loginClicks=0;},1500);
+  if(_loginClicks>=6){ _loginClicks=0; openAdminModal(); }
+}
+
+
+/* ================= PRINT (new-window, avoids iframe print-block) ================= */
+const PRINT_POPUP_CSS = ":root{--tax:#1d4d8f;--tax-soft:#e7effa;--proforma:#6a3fa0;--proforma-soft:#efe6f8;--packing:#1d7a4c;--packing-soft:#e5f5ec;--quote:#b56a17;--quote-soft:#faf0e1;--accent:#0f5c4e;--gold:#b8860b;--danger:#b3382c;}"+
+"body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;}"+
+".doc-page{width:210mm;min-height:296mm;margin:0 auto 6mm;background:#fff;color:#1a1a1a;padding:10mm 11mm;position:relative;font-size:10.8px;line-height:1.42;page-break-after:always;box-sizing:border-box;--docColor:#0f5c4e;--docSoft:#e4f2ee;}"+
+".doc-page *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}"+
+".doc-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;z-index:0;}"+
+".doc-watermark span{font-size:80px;font-weight:800;color:rgba(0,0,0,.06);transform:rotate(-32deg);white-space:nowrap;letter-spacing:4px;}"+
+".doc-content{position:relative;z-index:1;}"+
+".doc-topbar{height:9px;border-radius:4px;margin-bottom:10px;background:var(--docColor);}"+
+".doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:8px;padding-bottom:8px;border-bottom:2.5px solid var(--docColor);}"+
+".doc-head .co-logo{height:70px;max-width:210px;max-height:110px;object-fit:contain;}"+
+".doc-head .co-info{flex:1;}"+
+".doc-head .co-name{font-size:23px;font-weight:800;letter-spacing:.2px;color:var(--docColor);line-height:1.15;}"+
+".doc-head .co-addr{font-size:10px;color:#333;margin-top:3px;white-space:pre-line;line-height:1.5;}"+
+".doc-title-band{text-align:center;padding:9px 0;margin:0 0 10px;color:#fff;font-weight:800;font-size:18px;letter-spacing:2px;border-radius:5px;background:var(--docColor);}"+
+"table.doc-tbl{width:100%;border-collapse:collapse;margin-bottom:8px;}"+
+"table.doc-tbl td,table.doc-tbl th{border:1.3px solid #7d7d7d;padding:5px 7px;vertical-align:top;font-size:10px;}"+
+"table.doc-tbl th{background:var(--docSoft);font-weight:800;text-align:left;text-transform:uppercase;font-size:9.3px;letter-spacing:.3px;color:#111;border-bottom:2px solid var(--docColor);}"+
+".lbl{font-size:8.6px;text-transform:uppercase;color:var(--docColor);font-weight:800;letter-spacing:.3px;display:inline-block;margin-bottom:2px;background:var(--docSoft);padding:1px 6px;border-radius:3px;}"+
+".val{font-size:11.2px;font-weight:700;color:#111;display:block;margin-top:2px;}"+
+".items-doc td{font-size:9.8px;}"+
+".right{text-align:right;} .center{text-align:center;}"+
+".doc-total-row td{font-weight:800;background:var(--docSoft);border-top:1.5px solid var(--docColor);font-size:10.5px;}"+
+".doc-footer-note{font-size:8.8px;color:#444;margin-top:6px;line-height:1.5;}"+
+".doc-signblock{display:flex;justify-content:space-between;margin-top:28px;gap:20px;}"+
+".doc-signblock .sb{flex:1;text-align:center;font-size:9.6px;font-weight:600;border-top:1.8px solid #333;padding-top:6px;}"+
+".section-title-print{font-size:11.5px;font-weight:800;color:var(--docColor);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1.8px solid var(--docColor);padding-bottom:3px;}"+
+".doc-terms{font-size:9.3px;color:#333;white-space:pre-line;line-height:1.6;margin-top:5px;}"+
+".doc-page-num{position:absolute;top:8mm;right:11mm;font-size:9px;color:#666;}"+
+".copy-tag{display:inline-block;background:var(--docColor);color:#fff;font-size:9px;font-weight:700;padding:2px 10px;border-radius:3px;letter-spacing:.3px;}"+
+"@page{size:A4;margin:0;} @media print{.doc-page{margin:0;}}";
+
+function printPreview(){
+  const pages=document.querySelectorAll('#previewWrap .doc-page');
+  if(!pages.length){ toast('Pehle preview generate kijiye'); return; }
+  const w=window.open('', '_blank');
+  if(!w){ toast('Popup block ho gaya — browser me popups allow kijiye, ya PDF Download button use kijiye'); return; }
+  let inner=''; pages.forEach(p=> inner+=p.outerHTML);
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Print</title><style>'+PRINT_POPUP_CSS+'</style></head><body>'+inner+'</body></html>');
+  w.document.close();
+  const doPrint=()=>{ try{ w.focus(); w.print(); }catch(e){} };
+  w.onload=doPrint;
+  setTimeout(doPrint,500);
+}
+
+/* ================= FILE DOWNLOAD (plain browser download — no claude.ai session needed,
+   so the link works for anyone without requiring sign-in) ================= */
+function offerFile(filename, blob){
+  try{
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    toast('Downloaded: '+filename);
+  }catch(e){ toast('Download is browser me support nahi hua'); }
+}
+
+async function exportPreviewPDF(){
+  const pages=document.querySelectorAll('#previewWrap .doc-page');
+  if(!pages.length){ toast('Pehle preview generate kijiye'); return; }
+  if(!window.jspdf || !window.html2canvas){ toast('PDF library load nahi hui, dobara try kijiye'); return; }
+  toast('PDF taiyar ho raha hai…');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','mm','a4');
+  for(let i=0;i<pages.length;i++){
+    const canvas = await html2canvas(pages[i], {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+    const imgData = canvas.toDataURL('image/jpeg',0.95);
+    const w=210, h=(canvas.height*w)/canvas.width;
+    if(i>0) pdf.addPage();
+    pdf.addImage(imgData,'JPEG',0,0,w,h);
+  }
+  const blob = pdf.output('blob');
+  const fname=((window._pendingDoc&&window._pendingDoc.invoiceNo)||'document').replace(/[\/\\]/g,'-')+'.pdf';
+  offerFile(fname, blob);
+}
+function buildInvoiceWorkbook(doc){
+  const totals=calcTotals(doc), sec=secInfo(doc);
+  const rows=[['Sr','HSN','Description','Batch','Packaging','Qty','Unit','Rate',doc.currency+' Amount', sec.code+' Amount']];
+  doc.items.forEach((r,i)=>{
+    const amt=(parseFloat(r.qty)||0)*(parseFloat(r.rate)||0);
+    rows.push([i+1,r.hsn,r.desc,r.batch,r.pkg,r.qty,r.unit,r.rate, Number(amt.toFixed(2)), Number(sec.conv(amt).toFixed(2))]);
+  });
+  rows.push(['','','','','','','','TOTAL', Number(totals.grand.toFixed(2)), Number(totals.inr.toFixed(2))]);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Invoice');
+  return wb;
+}
+function exportPreviewExcel(){
+  if(!window._pendingDoc){ toast('Pehle preview generate kijiye'); return; }
+  if(!window.XLSX){ toast('Excel library load nahi hui, dobara try kijiye'); return; }
+  const wb=buildInvoiceWorkbook(window._pendingDoc);
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/octet-stream'});
+  const fname=(window._pendingDoc.invoiceNo||'document').replace(/[\/\\]/g,'-')+'.xlsx';
+  offerFile(fname, blob);
+}
+function exportReportExcel(){
+  if(!INVOICES.length){ toast('Report khaali hai'); return; }
+  if(!window.XLSX){ toast('Excel library load nahi hui, dobara try kijiye'); return; }
+  const rows=[['Type','Doc No','Date','Party','Currency','Amount','Secondary Currency','Secondary Amount']];
+  INVOICES.forEach(r=> rows.push([DOC_TYPES[r.type].short, r.invoiceNo, r.date, r.partyName, r.currency, Number((r.amount||0).toFixed(2)), r.secCode||'INR', Number((r.amountINR||0).toFixed(2))]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/octet-stream'});
+  offerFile('export-docs-report.xlsx', blob);
+}
+
+/* ================= INIT ================= */
+function init(){
+  populateGeoLists();
+  loadMasterForm();
+  renderTypeStrip();
+  renderPartyOptions();
+  document.getElementById('d_date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('l_date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('d_rateUsed').value=currentRate();
+  onTypeChange();
+  renderItemsTable();
+  if(!itemRows.length) addItemRow();
+  renderReport();
+  renderLedger();
+  checkEmergencyReset();
+  checkLogin();
+}
+init();
+</script>
+</body>
+</html>
